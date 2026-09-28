@@ -15,6 +15,14 @@ def main():
     print("Running InsiderTrace detection pipeline across all 9 detectors...")
     db = SessionLocal()
     try:
+        from app.models.alert import Alert
+        from app.models.case import Case
+        from app.models.signal import Signal
+        db.query(Case).delete()
+        db.query(Alert).delete()
+        db.query(Signal).delete()
+        db.commit()
+
         engine = DetectionEngine()
         det_res = engine.run_all(db=db, persist=True)
         print(f"Generated {det_res['total_signals']} signals in {det_res['duration_seconds']:.2f}s.")

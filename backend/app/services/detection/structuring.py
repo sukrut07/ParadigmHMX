@@ -67,11 +67,12 @@ class StructuringDetector(BaseDetector):
 
                 total_amount = sum(t.amount for t in window_txs)
                 # Check structuring pattern:
-                # 1. Total amount exceeds or approaches threshold (e.g., total >= threshold * 0.9)
-                # 2. Individual transaction amounts are below threshold (e.g. t.amount < threshold * 0.98)
-                # 3. Multiple transactions in close proximity
-                sub_threshold_txs = [t for t in window_txs if t.amount < threshold * 0.98]
-                if len(sub_threshold_txs) >= min_tx_count and sum(t.amount for t in sub_threshold_txs) >= threshold * 0.85:
+                # 1. Total split amount exceeds the reporting threshold (e.g., total >= threshold * 1.2)
+                # 2. Individual transaction amounts are deliberately sized just below threshold (0.60 * threshold to 0.99 * threshold)
+                # 3. Multiple split transactions in close proximity
+                sub_threshold_txs = [t for t in window_txs if 0.60 * threshold <= t.amount < 0.99 * threshold]
+                total_split = sum(t.amount for t in sub_threshold_txs)
+                if len(sub_threshold_txs) >= min_tx_count and total_split >= threshold * 1.2:
                     # Found structuring group!
                     evidence = []
                     participating_targets = list({t.to_account_id for t in sub_threshold_txs})
@@ -91,9 +92,8 @@ class StructuringDetector(BaseDetector):
                             }
                         })
 
-                    entities = [
-                        {"type": "account", "id": sender_id}
-                    ] + [{"type": "account", "id": target} for target in participating_targets]
+                    # Primary investigated entity is the structuring sender account
+                    entities = [{"type": "account", "id": sender_id}]
 
                     total_split = sum(t.amount for t in sub_threshold_txs)
                     time_span_hours = (sub_threshold_txs[-1].timestamp - sub_threshold_txs[0].timestamp).total_seconds() / 3600

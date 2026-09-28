@@ -93,6 +93,27 @@ def update_case(
     except ValueError as e:
         raise HTTPException(status_code=400, detail={"error": {"code": "CASE_UPDATE_FAILED", "message": str(e)}})
 
+@router.post("/{case_id}/notes", response_model=CaseResponse)
+def add_case_note(
+    case_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: SecurityContext = Depends(require_role(["ANALYST", "REVIEWER", "ADMIN"]))
+):
+    note_text = payload.get("note") or payload.get("text")
+    if not note_text:
+        raise HTTPException(status_code=400, detail="Note text is required.")
+    try:
+        updated = case_service.update_case(
+            db=db,
+            case_id=case_id,
+            actor=user.user_id,
+            note=note_text
+        )
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"error": {"code": "CASE_NOTE_FAILED", "message": str(e)}})
+
 @router.get("/{case_id}/export")
 def export_case_evidence(
     case_id: str,

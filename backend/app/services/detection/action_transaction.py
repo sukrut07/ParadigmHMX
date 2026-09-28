@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional
+from collections import defaultdict
 from datetime import timedelta
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -63,22 +64,28 @@ class ActionTransactionDetector(BaseDetector):
                 "details": f"Executed {log.action}"
             })
 
+        # Pre-group transactions by from_account_id to eliminate N+1 query overhead
+        tx_by_sender = defaultdict(list)
+        all_tx_query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
+        if transaction_id:
+            all_tx_query = all_tx_query.filter(Transaction.id == transaction_id)
+        elif account_id:
+            all_tx_query = all_tx_query.filter(Transaction.from_account_id == account_id)
+        
+        for t in all_tx_query.order_by(Transaction.timestamp.asc()).all():
+            tx_by_sender[t.from_account_id].append(t)
+
         for act in actions:
             emp_id = act["employee_id"]
             acc_id = act["account_id"]
             act_time = act["timestamp"]
 
             # Look for subsequent transactions from this account within window_hours
-            tx_query = db.query(Transaction).filter(
-                Transaction.from_account_id == acc_id,
-                Transaction.timestamp >= act_time,
-                Transaction.timestamp <= act_time + timedelta(hours=window_hours),
-                Transaction.status == "COMPLETED"
-            )
-            if transaction_id:
-                tx_query = tx_query.filter(Transaction.id == transaction_id)
-            
-            subsequent_txs = tx_query.order_by(Transaction.timestamp.asc()).all()
+            cand_txs = tx_by_sender.get(acc_id, [])
+            subsequent_txs = [
+                t for t in cand_txs
+                if act_time <= t.timestamp <= act_time + timedelta(hours=window_hours)
+            ]
             if not subsequent_txs:
                 continue
 
@@ -121,7 +128,7 @@ class ActionTransactionDetector(BaseDetector):
             entities = [
                 {"type": "employee", "id": emp_id},
                 {"type": "account", "id": acc_id}
-            ] + [{"type": "account", "id": t.to_account_id} for t in subsequent_txs[:3]]
+            ]
 
             explanation = (
                 f"Employee {emp_id} performed '{act['details']}' on account {acc_id}. "

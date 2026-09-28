@@ -48,6 +48,7 @@ def build_rule_trace(
         )
 
     return {
+        "tier": tier,
         "rules": rules_list,
         "human_explanation": human_explanation
     }

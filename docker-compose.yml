@@ -30,7 +30,8 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "python scripts/generate_data.py --customers 500 --accounts 600 --transactions 5000 --events 2000 --seed 42 &&
+      sh -c "alembic upgrade head &&
+             python scripts/generate_data.py --customers 500 --accounts 600 --transactions 5000 --events 2000 --seed 42 &&
              python scripts/run_detection.py &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
 

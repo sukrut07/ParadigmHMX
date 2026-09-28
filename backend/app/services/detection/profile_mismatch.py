@@ -26,20 +26,22 @@ class ProfileMismatchDetector(BaseDetector):
         accounts = query.all()
         signals = []
 
+        # Pre-group transactions by account to eliminate N+1 queries
+        tx_by_account = defaultdict(list)
+        all_tx_query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
+        if account_id:
+            all_tx_query = all_tx_query.filter((Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id))
+        for tx in all_tx_query.all():
+            tx_by_account[tx.from_account_id].append(tx)
+            tx_by_account[tx.to_account_id].append(tx)
+
         for acc in accounts:
             customer = acc.customer
             if not customer:
                 continue
 
-            # Monthly declared income ceiling
             declared_max = customer.declared_income_max or 50000.0
-            
-            # Fetch transactions associated with this account
-            txs = db.query(Transaction).filter(
-                (Transaction.from_account_id == acc.id) | (Transaction.to_account_id == acc.id),
-                Transaction.status == "COMPLETED"
-            ).all()
-
+            txs = tx_by_account.get(acc.id, [])
             if not txs:
                 continue
 
