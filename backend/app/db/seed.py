@@ -1,10 +1,8 @@
 import random
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-from faker import Faker
 import numpy as np
 from sqlalchemy.orm import Session
-from app.db.session import engine, SessionLocal, Base
+from app.db.session import Base
 from app.models.customer import Customer
 from app.models.account import Account
 from app.models.employee import Employee
@@ -14,10 +12,6 @@ from app.models.transaction import Transaction
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
 from app.models.ground_truth import GroundTruth
-from app.models.signal import Signal
-from app.models.alert import Alert
-from app.models.case import Case
-from app.models.audit import AuditLog
 
 def seed_demo_and_synthetic_dataset(
     db: Session,
@@ -38,8 +32,6 @@ def seed_demo_and_synthetic_dataset(
         Base.metadata.drop_all(bind=bind)
         Base.metadata.create_all(bind=bind)
 
-    fake = Faker()
-    Faker.seed(seed)
     random.seed(seed)
     np.random.seed(seed)
 
@@ -422,16 +414,17 @@ def seed_demo_and_synthetic_dataset(
 
     # Generate background normal employee access logs
     log_batch = []
+    emp_ids_all = [e.id for e in employees]
     emp_ids_background = [e.id for e in employees if e.id not in ("EMP-017", "EMP-022")]
     if not emp_ids_background:
-        emp_ids_background = emp_ids
+        emp_ids_background = emp_ids_all
     emp_by_id = {e.id: e for e in employees}
     remaining_logs = max(num_events - 100, 500)
     for i in range(1, remaining_logs + 1):
         e_id = random.choice(emp_ids_background)
         a_id = random.choice(background_acc_ids)
         emp_obj = emp_by_id[e_id]
-        if emp_obj.normal_work_start == "21:00":
+        if str(emp_obj.normal_work_start) == "21:00":
             # overnight worker: between 22:00 and 05:00
             hour = random.choice([22, 23, 0, 1, 2, 3, 4, 5])
         else:

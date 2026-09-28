@@ -47,7 +47,7 @@ def list_evidence_packages(
             "action": exp.action,
             "format": meta.get("format", "json"),
             "sha256": meta.get("sha256", ""),
-            "timestamp": exp.timestamp.isoformat() if exp.timestamp else None,
+            "timestamp": exp.timestamp.isoformat() if exp.timestamp is not None else None,
             "verified": True,
             "status": "VERIFIED"
         })
@@ -63,7 +63,7 @@ def list_evidence_packages(
                 "actor": v.actor,
                 "bundle_id": v.target_id,
                 "valid": (v.metadata_json or {}).get("valid", True),
-                "timestamp": v.timestamp.isoformat() if v.timestamp else None
+                "timestamp": v.timestamp.isoformat() if v.timestamp is not None else None
             }
             for v in verifications
         ]
