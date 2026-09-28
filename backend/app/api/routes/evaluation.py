@@ -10,6 +10,7 @@ router = APIRouter(prefix="/metrics", tags=["Evaluation & Benchmarks"])
 eval_engine = EvaluationEngine()
 
 @router.get("/evaluation", response_model=EvaluationResponse)
+@router.get("", response_model=EvaluationResponse)
 def get_evaluation_metrics(
     db: Session = Depends(get_db),
     user: SecurityContext = Depends(require_role(["AUDITOR", "ANALYST", "REVIEWER", "ADMIN"]))
@@ -21,3 +22,4 @@ def get_evaluation_metrics(
     alerts = db.query(Alert).all()
     results = eval_engine.evaluate(db, alerts)
     return EvaluationResponse(**results)
+

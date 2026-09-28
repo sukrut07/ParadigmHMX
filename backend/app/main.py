@@ -18,6 +18,8 @@ from app.api.routes import (
     detection,
     health,
     demo,
+    dashboard,
+    investigations,
 )
 from app.db.session import engine, Base
 import app.models # ensure models are registered
@@ -111,3 +113,5 @@ app.include_router(timeline.router)
 app.include_router(evaluation.router)
 app.include_router(simulation.router)
 app.include_router(detection.router)
+app.include_router(dashboard.router)
+app.include_router(investigations.router)

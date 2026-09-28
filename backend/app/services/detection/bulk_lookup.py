@@ -79,7 +79,7 @@ class BulkLookupDetector(BaseDetector):
 
                     entities = [
                         {"type": "employee", "id": emp}
-                    ] + [{"type": "account", "id": a} for a in list(accs)[:5]]
+                    ]
 
                     explanation = (
                         f"Employee {emp} performed an anomalous volume of account lookups on {day}: "

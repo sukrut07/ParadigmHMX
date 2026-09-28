@@ -43,7 +43,7 @@ def seed_demo_and_synthetic_dataset(
     random.seed(seed)
     np.random.seed(seed)
 
-    base_date = datetime(2026, 9, 1, 9, 0, 0, tzinfo=timezone.utc)
+    base_date = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
 
     # 1. Seed Roles
     roles_data = [
@@ -110,6 +110,35 @@ def seed_demo_and_synthetic_dataset(
         )
         employees.append(emp)
         db.add(emp)
+
+    # Ensure EMP-017 and EMP-022 are always present for demo scenarios
+    emp_ids_set = {e.id for e in employees}
+    if "EMP-017" not in emp_ids_set:
+        emp17 = Employee(
+            id="EMP-017",
+            pseudonym_id="P-EMP-017",
+            role_id="ROLE-TELLER",
+            branch_id="BR-01",
+            joined_at=base_date - timedelta(days=500),
+            normal_work_start="09:00",
+            normal_work_end="18:00",
+            status="ACTIVE"
+        )
+        employees.append(emp17)
+        db.add(emp17)
+    if "EMP-022" not in emp_ids_set:
+        emp22 = Employee(
+            id="EMP-022",
+            pseudonym_id="P-EMP-022",
+            role_id="ROLE-OPS",
+            branch_id="BR-02",
+            joined_at=base_date - timedelta(days=400),
+            normal_work_start="09:00",
+            normal_work_end="18:00",
+            status="ACTIVE"
+        )
+        employees.append(emp22)
+        db.add(emp22)
     db.commit()
 
     # 4. Seed Customers
@@ -195,9 +224,13 @@ def seed_demo_and_synthetic_dataset(
     db.add_all([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
     accounts.extend([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
 
-    for i in range(len(accounts) + 1, num_accounts + 1):
+    existing_acc_ids = {a.id for a in accounts}
+    for i in range(1, num_accounts + 1):
+        acc_id = f"ACC-{i:04d}"
+        if acc_id in existing_acc_ids:
+            continue
         acc = Account(
-            id=f"ACC-{i:04d}",
+            id=acc_id,
             customer_id=random.choice(customers).id,
             account_type=random.choice(["SAVINGS", "CURRENT"]),
             branch_id=random.choice(branches),
@@ -327,14 +360,21 @@ def seed_demo_and_synthetic_dataset(
     # 8. BULK SYNTHETIC TRANSACTIONS & ACCESS LOGS
     # Generate realistic background transactions (up to num_transactions)
     # We will generate in batches for performance
-    acc_ids = [a.id for a in accounts]
+    special_acc_ids = {
+        "ACC-0231", "ACC-0442", "ACC-0553", "ACC-PAYROLL-01",
+        "ACC-8801", "ACC-8802", "ACC-8803"
+    }
+    background_acc_ids = [a.id for a in accounts if a.id not in special_acc_ids]
+    if len(background_acc_ids) < 2:
+        background_acc_ids = [a.id for a in accounts]
+
     tx_batch = []
     channels = ["UPI", "NEFT", "RTGS", "BRANCH", "INTERNAL"]
     
     # Generate background normal transactions
     remaining_tx = max(num_transactions - 100, 500)
     for i in range(1, remaining_tx + 1):
-        u, v = random.sample(acc_ids, 2)
+        u, v = random.sample(background_acc_ids, 2)
         # Lognormal distribution for amounts: most transactions between 500 and 15,000
         amt = round(float(np.random.lognormal(mean=7.5, sigma=1.2)), 2)
         amt = min(max(amt, 100.0), 45000.0) # normal retail amounts
@@ -365,13 +405,25 @@ def seed_demo_and_synthetic_dataset(
     # Generate background normal employee access logs
     log_batch = []
     emp_ids = [e.id for e in employees]
+    emp_ids_background = [e.id for e in employees if e.id not in ("EMP-017", "EMP-022")]
+    if not emp_ids_background:
+        emp_ids_background = emp_ids
+    emp_by_id = {e.id: e for e in employees}
     remaining_logs = max(num_events - 100, 500)
     for i in range(1, remaining_logs + 1):
-        e_id = random.choice(emp_ids)
-        a_id = random.choice(acc_ids)
+        e_id = random.choice(emp_ids_background)
+        a_id = random.choice(background_acc_ids)
+        emp_obj = emp_by_id[e_id]
+        if emp_obj.normal_work_start == "21:00":
+            # overnight worker: between 22:00 and 05:00
+            hour = random.choice([22, 23, 0, 1, 2, 3, 4, 5])
+        else:
+            # daytime worker: between 10:00 and 16:00
+            hour = random.randint(10, 16)
+
         l_time = base_date + timedelta(
             days=random.randint(0, 28),
-            hours=random.randint(9, 17), # within normal working hours
+            hours=hour,
             minutes=random.randint(0, 59)
         )
         log_batch.append(AccessLog(

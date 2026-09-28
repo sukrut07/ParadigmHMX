@@ -53,7 +53,7 @@ class CircularTransferDetector(BaseDetector):
         for cycle in cycles:
             # cycle is a list of node IDs: [A, B, C, D] meaning A->B->C->D->A
             k = len(cycle)
-            if k < 2 or k > max_cycle_len:
+            if k < 3 or k > max_cycle_len:
                 continue
 
             # If filtered by account_id, check membership
@@ -66,11 +66,16 @@ class CircularTransferDetector(BaseDetector):
             visited_cycles.add(cycle_key)
 
             # Check matching sequence of transactions along cycle
-            # We want to find a chain tx_0, tx_1, ..., tx_{k-1} where timestamp is non-decreasing within max_hours
+            # Test all cyclic rotations so the chronological start transaction can be any edge
             edges = [(cycle[i], cycle[(i + 1) % k]) for i in range(k)]
-            
-            # Verify if there is a chronological chain
-            valid_chain = self._find_chronological_chain(edges, tx_by_edge, max_hours)
+            valid_chain = None
+            for rot in range(k):
+                rotated_edges = edges[rot:] + edges[:rot]
+                chain = self._find_chronological_chain(rotated_edges, tx_by_edge, max_hours)
+                if chain:
+                    valid_chain = chain
+                    break
+
             if not valid_chain:
                 continue
 

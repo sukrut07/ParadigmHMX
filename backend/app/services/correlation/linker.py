@@ -28,17 +28,49 @@ class CorrelationLinker:
         if not signals:
             return []
 
-        # 1. Build adjacency / linkage between signals sharing entities
-        # Map entity -> signal indices
-        entity_to_signals = defaultdict(set)
+        # 1. Build adjacency / linkage between signals
+        # Financial and cross-domain signals link primarily through shared accounts.
+        # Purely insider signals (without financial crime) link by employee.
+        financial_signal_types = {
+            "CIRCULAR_TRANSFER", "STRUCTURING", "RAPID_PASSTHROUGH",
+            "PROFILE_MISMATCH", "ACTION_TRANSACTION_LINK"
+        }
+
+        adj = defaultdict(set)
+
+        # Connect signals sharing accounts
+        account_to_signals = defaultdict(set)
         for idx, sig in enumerate(signals):
             for ent in sig.get("entities", []):
-                ent_key = f"{ent['type']}:{ent['id']}"
-                entity_to_signals[ent_key].add(idx)
+                if ent.get("type") == "account":
+                    account_to_signals[ent["id"]].add(idx)
 
-        # Graph of signal indices connected by shared entities
-        adj = defaultdict(set)
-        for ent_key, sig_indices in entity_to_signals.items():
+        for acc_id, sig_indices in account_to_signals.items():
+            sig_list = list(sig_indices)
+            for i in range(len(sig_list)):
+                for j in range(i + 1, len(sig_list)):
+                    adj[sig_list[i]].add(sig_list[j])
+                    adj[sig_list[j]].add(sig_list[i])
+
+        # Connect pure insider signals by employee (only if neither signal has financial links)
+        employee_to_signals = defaultdict(set)
+        for idx, sig in enumerate(signals):
+            sig_type = sig.get("signal_type")
+            if sig_type not in financial_signal_types:
+                # Check if this signal touches an account with a financial signal
+                has_financial_acc = any(
+                    ent["id"] in account_to_signals and any(
+                        signals[s_idx]["signal_type"] in financial_signal_types
+                        for s_idx in account_to_signals[ent["id"]]
+                    )
+                    for ent in sig.get("entities", []) if ent.get("type") == "account"
+                )
+                if not has_financial_acc:
+                    for ent in sig.get("entities", []):
+                        if ent.get("type") == "employee":
+                            employee_to_signals[ent["id"]].add(idx)
+
+        for emp_id, sig_indices in employee_to_signals.items():
             sig_list = list(sig_indices)
             for i in range(len(sig_list)):
                 for j in range(i + 1, len(sig_list)):

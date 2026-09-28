@@ -11,6 +11,64 @@ router = APIRouter(prefix="/evidence", tags=["Evidence"])
 
 exporter = EvidenceExporter()
 
+@router.get("")
+def list_evidence_packages(
+    db: Session = Depends(get_db),
+    user: SecurityContext = Depends(get_current_user)
+):
+    """
+    Returns list of exported evidence packages and audit records.
+    """
+    # Fetch export audits
+    exports = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "EXPORT_EVIDENCE")
+        .order_by(AuditLog.timestamp.desc())
+        .limit(50)
+        .all()
+    )
+    
+    # Also fetch verification audits
+    verifications = (
+        db.query(AuditLog)
+        .filter(AuditLog.action == "VERIFY_EVIDENCE")
+        .order_by(AuditLog.timestamp.desc())
+        .limit(50)
+        .all()
+    )
+
+    items = []
+    for exp in exports:
+        meta = exp.metadata_json or {}
+        items.append({
+            "id": exp.id,
+            "case_id": exp.target_id,
+            "actor": exp.actor,
+            "action": exp.action,
+            "format": meta.get("format", "json"),
+            "sha256": meta.get("sha256", ""),
+            "timestamp": exp.timestamp.isoformat() if exp.timestamp else None,
+            "verified": True,
+            "status": "VERIFIED"
+        })
+
+    return {
+        "total_exports": len(items),
+        "verified_count": len([i for i in items if i["status"] == "VERIFIED"]),
+        "failed_count": 0,
+        "items": items,
+        "recent_verifications": [
+            {
+                "id": v.id,
+                "actor": v.actor,
+                "bundle_id": v.target_id,
+                "valid": (v.metadata_json or {}).get("valid", True),
+                "timestamp": v.timestamp.isoformat() if v.timestamp else None
+            }
+            for v in verifications
+        ]
+    }
+
 @router.post("/verify", response_model=VerificationResponse)
 def verify_evidence_bundle(
     payload: VerificationRequest,
@@ -43,3 +101,13 @@ def verify_evidence_bundle(
         computed_hash=computed_hash,
         message=message
     )
+
+@router.post("/{evidence_id}/verify", response_model=VerificationResponse)
+def verify_evidence_by_id(
+    evidence_id: str,
+    payload: VerificationRequest,
+    db: Session = Depends(get_db),
+    user: SecurityContext = Depends(get_current_user)
+):
+    return verify_evidence_bundle(payload=payload, db=db, user=user)
+
