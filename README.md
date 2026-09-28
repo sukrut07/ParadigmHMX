@@ -1,215 +1,445 @@
 # InsiderTrace
 
-> **Evidence-First Financial Crime & Insider Risk Intelligence Platform** linking employee actions, customer accounts, transactional anomalies, and money-flow graphs.
+<div align="center">
+
+**Evidence-First Financial Crime & Insider Risk Intelligence Platform**  
+*Unifying Employee Operations, Account Parameters, Transactional Networks, and Money-Flow Subgraphs*
+
+[![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8%20%7C%206.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4.3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00?logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
+[![Alembic](https://img.shields.io/badge/Alembic-1.20+-red)](https://alembic.sqlalchemy.org/)
+[![Pytest](https://img.shields.io/badge/Tests-27%20Passed-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
+[![Type Checker](https://img.shields.io/badge/Pyright%20%26%20Pyrefly-0%20Errors-success)](https://pyrefly.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
+[Architecture](#system-architecture) • [Features](#key-capabilities) • [Detection Typologies](#detection-typologies--the-9-detectors) • [Persona Workspaces](#persona-dashboards--workspaces) • [Installation](#getting-started) • [API Contract](#api-endpoints-reference) • [Evaluation](#evaluation-methodology--benchmarks)
+
+</div>
 
 ---
 
-## Architecture
+## Executive Summary
 
-InsiderTrace is architected as an **evidence-first, deterministic intelligence system**. It continuously ingests both internal operations activity (core banking access logs, account edits, limit adjustments, role delegations) and external financial transactions (UPI, NEFT, RTGS, Cash), correlating across domains to surface insider-facilitated financial crime.
+Financial institutions face an existential vulnerability at the intersection of **employee operational authority** and **money laundering networks**. Traditional financial crime infrastructure is split into disjointed silos:
+* **Transaction Monitoring Systems (AML / TMS)** scrutinize client-to-client payment amounts, structuring, and velocity—blind to internal overrides, credential abuses, and employee account modifications.
+* **User & Entity Behavior Analytics (UEBA / IAM)** monitor employee workstation logins and access tickets—blind to downstream money flow and circular financial dissipation.
+
+**InsiderTrace** eliminates this blindspot. It is an **evidence-first, deterministic intelligence system** that ingests both internal banking operational streams (*access logs, contact edits, limit adjustments, role delegations*) and external payments (*UPI, NEFT, RTGS, Cash*). By analyzing causal sequences, temporal proximity, and entity subgraphs, InsiderTrace surfaces insider-facilitated financial crime with cryptographic proof, deterministic rule traces, and actionable counterfactual explanations.
+
+---
+
+## System Architecture
+
+InsiderTrace is designed around a multi-stage pipeline where raw events are ingested, filtered into high-confidence atomic signals, causally correlated into multi-domain clusters, and scored through auditable deterministic rule sets.
 
 ```
-                              ┌───────────────────────────────────┐
-                              │     Heterogeneous Data Streams     │
-                              │ (Access Logs, Changes, Transfers) │
-                              └─────────────────┬─────────────────┘
-                                                │
-                                                ▼
-                              ┌───────────────────────────────────┐
-                              │       Multi-Signal Detectors       │
-                              │  (Financial, Insider, Sequencing)  │
-                              └─────────────────┬─────────────────┘
-                                                │
-                                                ▼
-                              ┌───────────────────────────────────┐
-                              │    Correlation & Linker Engine    │
-                              │   (Shared Entities & Causality)   │
-                              └─────────────────┬─────────────────┘
-                                                │
-                                                ▼
-                              ┌───────────────────────────────────┐
-                              │  Deterministic Risk Tier Engine   │
-                              │    + Counterfactual Explanations  │
-                              └─────────────────┬─────────────────┘
-                                                │
-                 ┌──────────────────────────────┼──────────────────────────────┐
-                 ▼                              ▼                              ▼
-      ┌────────────────────┐         ┌────────────────────┐         ┌────────────────────┐
-      │  Case Management   │         │ Case Subgraph &    │         │ Tamper-Evident     │
-      │  & Audit Trail     │         │ Unified Timeline   │         │ Evidence Dossier   │
-      └────────────────────┘         └────────────────────┘         └────────────────────┘
+                              ┌──────────────────────────────────────────────┐
+                              │          Heterogeneous Ingestion             │
+                              │ ──────────────────────────────────────────── │
+                              │ • Core Banking Access Logs (VIEW, EDIT, OVR) │
+                              │ • Account Parameter Changes (Limit, Phone)   │
+                              │ • Payment Transactions (UPI, NEFT, RTGS)     │
+                              └──────────────────────┬───────────────────────┘
+                                                     │
+                                                     ▼
+                              ┌──────────────────────────────────────────────┐
+                              │       9 Specialized Signal Detectors         │
+                              │ ──────────────────────────────────────────── │
+                              │ • Financial: Loops, Structuring, Passthrough │
+                              │ • Insider: Out-of-Role, Off-Hours, Overrides │
+                              │ • Causal: Action ➔ Param Edit ➔ Dissipation  │
+                              └──────────────────────┬───────────────────────┘
+                                                     │
+                                                     ▼
+                              ┌──────────────────────────────────────────────┐
+                              │         Correlation & Linker Engine          │
+                              │ ──────────────────────────────────────────── │
+                              │ • Causal Chain Assembly & Temporal Windows   │
+                              │ • Entity Graph Clustering & Cross-Referencing│
+                              │ • SHA-256 Deduplication Hash Fingerprinting  │
+                              └──────────────────────┬───────────────────────┘
+                                                     │
+                                                     ▼
+                              ┌──────────────────────────────────────────────┐
+                              │        Deterministic Risk Tier Engine        │
+                              │ ──────────────────────────────────────────── │
+                              │ • Transparent YAML Rule Set (CRITICAL..LOW)  │
+                              │ • Rule Trace (Matched Conditions & Triggers) │
+                              │ • Automated Counterfactual "What-If" Engine  │
+                              └──────────────────────┬───────────────────────┘
+                                                     │
+                   ┌─────────────────────────────────┼─────────────────────────────────┐
+                   ▼                                 ▼                                 ▼
+      ┌─────────────────────────┐       ┌─────────────────────────┐       ┌─────────────────────────┐
+      │  Investigation & Case   │       │  Interactive Subgraph   │       │ Tamper-Evident Dossier  │
+      │  Management State Mach  │       │   & Unified Timelines   │       │   & SHA-256 Verification│
+      │ ─────────────────────── │       │ ─────────────────────── │       │ ─────────────────────── │
+      │ Strict Invariants, PII  │       │ Cytoscape Graph Network,│       │ RFC 8785 Canonical JSON,│
+      │ Masking, Audit Log Trail│       │ Chronological Log Stream│       │ ReportLab PDF Export    │
+      └─────────────────────────┘       └─────────────────────────┘       └─────────────────────────┘
 ```
 
 ---
 
-## Features
+## Key Capabilities
 
-1. **Deterministic Multi-Signal Detection:** 9 specialized detectors operating over transactions, account changes, and employee logs with strict evidence citations.
-2. **Cross-Domain Correlation Linkage:** Bridges insider access anomalies with financial fund flow through entity overlap, causal sequencing, and timing analysis.
-3. **Transparent Risk Tiering & Rule Traces:** Every alert is classified (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) using explainable, auditable rules rather than opaque ML scores.
-4. **Counterfactual "What-If" Explanations:** Explains how changing conditions (e.g. authorized branch shift or lower transfer volume) would alter the risk tier.
-5. **Interactive Subgraphs & Unified Timelines:** Fast NetworkX case subgraphs and merged chronological event streams for immediate investigator comprehension.
-6. **Case Management with Strict Invariants:** State machine (`OPEN` → `IN_REVIEW` → `ESCALATED` → `CLOSED`) with mandatory closure reasoning and tamper-proof audit trails.
-7. **Tamper-Evident SHA-256 Evidence Export:** One-click legal bundle export in canonical JSON or formatted ReportLab PDF, verifiable with cryptographic integrity checks.
-8. **Employee Blast Radius Analysis:** Discovers touched accounts, customers, devices, and downstream transactions to quantify insider risk exposure.
-9. **Red-Team Simulation Engine:** Injects on-demand attack scenarios across 7 typologies for continuous validation.
-10. **Ground-Truth Isolated Evaluation:** Rigorous metrics, confusion matrices, hard negative testing, and ablation studies completely isolated from operator APIs.
-
----
-
-## Detection Signals
-
-### Financial Detectors
-1. **`CIRCULAR_TRANSFER`**: Detects directed money-flow loops ($A \rightarrow B \rightarrow C \rightarrow A$) executed within a short time window.
-2. **`STRUCTURING`**: Surfaces deliberate smurfing / threshold evasion ($n$ split transactions just under reporting thresholds within 72 hours).
-3. **`RAPID_PASSTHROUGH`**: Detects mule accounts receiving funds and rapidly draining >85% of the balance within 4 hours.
-4. **`PROFILE_MISMATCH`**: Identifies accounts whose monthly transactional volume or single transfer wildly exceeds their declared occupation and income profile.
-
-### Insider Detectors
-5. **`OUT_OF_ROLE_ACCESS`**: Flags employees executing operations forbidden by their RBAC role or outside their designated branch jurisdiction.
-6. **`OFF_HOURS_ACCESS`**: Detects employee logins and modifications outside assigned shift windows without emergency exception tickets.
-7. **`BULK_LOOKUP`**: Identifies reconnaissance behavior where an employee accesses anomalous volumes of customer accounts (>30 in 24 hours).
-8. **`PRIVILEGE_ABUSE`**: Flags repeated managerial overrides, credit balance adjustments, or limit increases exceeding normal peer baselines.
-
-### Sequencing & Correlation Detectors
-9. **`ACTION_TRANSACTION_LINK`**: Identifies the high-risk temporal sequence: **Employee Action $\rightarrow$ Account Parameter Change $\rightarrow$ Rapid Outbound Transfer**.
+1. **Deterministic Multi-Signal Engine:** 9 specialized heuristic and graph detectors operating over transactions, account alterations, and operator logs.
+2. **Causal Cross-Domain Correlation:** Detects the high-risk operational triad: **Unauthorized Access $\rightarrow$ Security Parameter Override $\rightarrow$ Rapid Outbound Transfer**.
+3. **Transparent Risk Tiering & Rule Traces:** Zero "black-box" machine learning hallucination. Every alert has a deterministic risk tier (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`) accompanied by exact rule triggering paths.
+4. **Counterfactual "What-If" Reasoning:** Computes the minimal condition shift required to downgrade or eliminate the alert (e.g., *"If employee EMP-017 held Branch Manager privileges, risk tier drops from CRITICAL to LOW"*).
+5. **Interactive Subgraphs & Unified Chronology:** High-performance NetworkX graph extraction and merged multi-source event streams rendered dynamically with Cytoscape.js.
+6. **Case Management with Enforced Invariants:** A strict state transition machine (`OPEN` $\rightarrow$ `IN_REVIEW` $\rightarrow$ `ESCALATED` $\rightarrow$ `CLOSED_CONFIRMED` / `CLOSED_FALSE_POSITIVE`). Enforces mandatory documented closure reasoning and reviewer evidence notes.
+7. **Cryptographic SHA-256 Evidence Export:** Exports complete forensic dossiers in RFC 8785 canonical JSON or formatted ReportLab PDF, fingerprinted with SHA-256 digests for legal chain-of-custody.
+8. **Employee Blast Radius Analysis:** Discovers all customer accounts, branch terminals, and downstream financial volume touched by a suspected employee over a rolling window.
+9. **On-Demand Adversary Simulation:** In-memory red-team engine synthesizing fresh adversary injection scenarios across 7 attack typologies to validate institutional defense rules.
+10. **Completely Isolated Ground-Truth Benchmark:** Built-in quantitative evaluation harness computing precision, recall, F1-score, False Positive Rates, and ablation deltas without leaking test labels to operational APIs.
 
 ---
 
-## Setup
+## Detection Typologies & The 9 Detectors
+
+| # | Detector Name | Signal Type | Category | Detection Logic & Invariants |
+|:---|:---|:---|:---|:---|
+| 1 | **Circular Transfer** | `CIRCULAR_TRANSFER` | Financial | Detects directed money loops ($A \rightarrow B \rightarrow C \rightarrow A$) where transactions execute chronologically within a configurable time window (default: 48 hours, $\ge 3$ hops, amount $\ge$ ₹15,000). |
+| 2 | **Structuring / Smurfing** | `STRUCTURING` | Financial | Flags deliberate evasion of mandatory reporting thresholds ($0.60 \times \text{Threshold} \le \text{amount} < 0.99 \times \text{Threshold}$) across $\ge 3$ transactions in a 72-hour rolling window. |
+| 3 | **Rapid Passthrough** | `RAPID_PASSTHROUGH` | Financial | Identifies mule behavior where an account receives an inbound lump sum and dissipates $\ge 85\%$ of the funds within 4 hours. |
+| 4 | **Profile Mismatch** | `PROFILE_MISMATCH` | Financial | Flags transactions where payment volume exceeds $3.0\times$ the customer's declared monthly income ceiling based on occupation profile. |
+| 5 | **Out-of-Role Access** | `OUT_OF_ROLE_ACCESS` | Insider | Flags employee operations explicitly forbidden by RBAC permissions or performed outside their assigned branch jurisdiction. |
+| 6 | **Off-Hours Activity** | `OFF_HOURS_ACCESS` | Insider | Detects employee logins, modifications, and approvals executed outside assigned shift hours without authorized emergency override tickets. |
+| 7 | **Bulk Account Lookup** | `BULK_LOOKUP` | Insider | Detects reconnaissance patterns where an employee queries an anomalous number of unique customer accounts ($> 30$ accounts in 24 hours, $z$-score $> 2.0$). |
+| 8 | **Privilege Abuse** | `PRIVILEGE_ABUSE` | Insider | Flags repeated managerial overrides, unapproved daily transfer limit raises, and KYC parameter resets exceeding peer benchmarks. |
+| 9 | **Action-Transaction Link** | `ACTION_TRANSACTION_LINK` | Cross-Domain | Bridges operational changes and financial outflow: Flags when an employee modifies account parameters (phone, limit, KYC) followed by outbound fund drainage within 24 hours. |
+
+---
+
+## Persona Dashboards & Workspaces
+
+InsiderTrace provides four tailored workspaces designed for different operational personas:
+
+```
+                                  INSIDERTRACE PLATFORM
+                                            │
+        ┌───────────────────┬───────────────┴───────────────┬───────────────────┐
+        ▼                   ▼                               ▼                   ▼
+┌───────────────┐   ┌───────────────┐               ┌───────────────┐   ┌───────────────┐
+│ Fraud Analyst │   │Internal Audit │               │Compliance Head│   │ Investigation │
+│   Workspace   │   │Intelligence   │               │   Overview    │   │   Workspace   │
+└───────────────┘   └───────────────┘               └───────────────┘   └───────────────┘
+```
+
+### 1. Fraud Analyst Workspace (`/alerts`)
+* **Priority Triage Queue:** Real-time alert feed filtered by risk tier (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), primary signal, and assignment status.
+* **Alert Dossier Drawer:** Instant access to cited records, deterministic rule traces, and automated counterfactual explanations.
+* **One-Click Case Creation:** Elevate high-confidence alerts directly into formal investigative cases.
+
+### 2. Internal Audit & Employee Intelligence (`/audit`)
+* **Peer-Group Anomaly Scores:** Z-score ranking of staff account lookups and privilege overrides against role baselines.
+* **Blast Radius Quantification:** Computes total customer accounts, branch devices, and financial volume exposed to an individual operator.
+* **Branch Risk Heatmap:** Cross-branch operational compliance health and anomaly density metrics.
+
+### 3. Compliance Head & Executive Overview (`/compliance`)
+* **Regulatory Compliance Readiness:** Tracking case resolution timelines, mandatory justification adherence, and SAR filing readiness.
+* **Ablation Performance:** Side-by-side empirical metrics proving the detection lift of combining employee context with transaction monitoring.
+* **False Positive Reduction:** Live tracking of hard negative resilience across benign payroll lookalikes and scheduled rent transfers.
+
+### 4. Forensic Investigation Workspace (`/investigation/:id`)
+* **Interactive Cytoscape Network Subgraphs:** Dynamic visual exploration of fund transfers, account links, employee touchpoints, and shared devices.
+* **Unified Chronological Timeline:** Unified, chronological event stream merging core banking access logs, account field updates, and external payment rails.
+* **Forensic Evidence Dossier:** Tamper-evident bundle viewer with canonical JSON and formatted ReportLab PDF download.
+* **Cryptographic Integrity Verification:** On-screen verification modal validating the SHA-256 hash against the canonical payload.
+
+---
+
+## Seeded Demo Scenarios
+
+The repository includes a deterministic seeding harness (`seed=42`) pre-populating rich corporate banking baseline activity alongside four flagship demo scenarios:
+
+### Scenario 1: Insider Collusion & Circular Laundering (CRITICAL)
+* **Entities:** Employee `EMP-017` (Teller), Customer Account `ACC-0231` (Victim/Target), Mules `ACC-0442`, `ACC-0553`, and `ACC-0231`.
+* **Execution Sequence:**
+  1. `EMP-017` views `ACC-0231` and edits contact phone number without approval.
+  2. `EMP-017` executes an unauthorized daily limit boost override.
+  3. Immediate outbound transfers of ₹4,80,000 and ₹4,70,000 dissipate from `ACC-0231`.
+  4. Funds circulate through mule ring: `ACC-0231` $\rightarrow$ `ACC-0442` $\rightarrow$ `ACC-0553` $\rightarrow$ `ACC-0231`.
+* **Platform Outcome:** Correctly correlated into a single unified `CRITICAL` alert with 4 linked signals, accompanied by rule traces and subgraphs.
+
+### Scenario 2: Legitimate High-Volume Corporate Payroll (HARD NEGATIVE)
+* **Entities:** Corporate Account `ACC-PAYROLL-01`, 30 Employee Destination Accounts.
+* **Execution Sequence:** High-velocity batch disbursement of ₹18,00,000 executed on the 1st of the month.
+* **Platform Outcome:** The rule engine recognizes payroll cadence and benign batch attributes; zero `CRITICAL` or `HIGH` alerts are emitted.
+
+### Scenario 3: Bulk Reconnaissance & Insider Policy Breach (MEDIUM)
+* **Entities:** Employee `EMP-022` (Operations Analyst).
+* **Execution Sequence:** `EMP-022` conducts unauthorized searches across 42 unrelated customer accounts in 3 hours ($z$-score $> 3.5$).
+* **Platform Outcome:** Emits an insider behavioral anomaly alert citing access records, without falsely implicating transactional fraud.
+
+### Scenario 4: External Financial Laundering Ring (HIGH)
+* **Entities:** Accounts `ACC-8801`, `ACC-8802`, `ACC-8803`.
+* **Execution Sequence:** Rapid 3-hop circular transfer of ₹2,50,000 executed via automated UPI rails.
+* **Platform Outcome:** Surfaces a high-priority financial crime alert attributing zero employee involvement.
+
+---
+
+## Repository Structure
+
+```text
+ParadigmHMX/
+├── .venv/                         # Project virtual environment (Python 3.14/3.11)
+├── .vscode/
+│   └── settings.json             # Workspace settings (Python interpreter, search paths)
+├── backend/
+│   ├── alembic/                  # Database migration scripts & env configuration
+│   ├── alembic.ini               # Alembic configuration
+│   ├── Dockerfile                # Backend container definition
+│   ├── docker-compose.yml        # Docker compose service definition
+│   ├── insidertrace.db           # SQLite development & demo database fixture
+│   ├── pytest.ini                # Pytest test configuration
+│   ├── requirements.txt          # Python dependency declarations
+│   ├── app/
+│   │   ├── api/                  # FastAPI routers and dependency injection
+│   │   │   ├── deps.py           # Database sessions and security context dependencies
+│   │   │   └── routes/           # REST endpoints (alerts, cases, employees, etc.)
+│   │   ├── config.py             # Pydantic environment settings
+│   │   ├── db/
+│   │   │   ├── seed.py           # Deterministic synthetic banking data generator
+│   │   │   └── session.py        # SQLAlchemy 2.0 engine, SessionLocal, DeclarativeBase
+│   │   ├── models/               # SQLAlchemy 2.0 Mapped declarative models
+│   │   ├── schemas/              # Pydantic validation and serialization models
+│   │   ├── services/
+│   │   │   ├── cases/            # Case management and audit logging service
+│   │   │   ├── correlation/      # Multi-signal linker, rule trace, counterfactuals
+│   │   │   ├── detection/        # 9 specialized heuristic and graph detectors
+│   │   │   ├── evaluation/       # Benchmark metrics, ablation, and confusion matrix
+│   │   │   ├── evidence/         # Canonical JSON hashing & ReportLab PDF exporter
+│   │   │   ├── graph/            # NetworkX graph builder & employee blast radius
+│   │   │   ├── simulation/       # Red-team attack injection engine
+│   │   │   └── timeline/         # Chronological multi-stream event unification
+│   │   ├── utils/                # RFC 8785 hashing, ID generation, time helpers
+│   │   ├── main.py               # FastAPI application entrypoint and middleware
+│   │   └── risk_rules.yaml       # Deterministic risk tiering configuration
+│   ├── scripts/                  # CLI utilities for backend execution
+│   └── tests/                    # 27 comprehensive pytest test suites
+├── docs/
+│   ├── API_CONTRACT.md           # Exhaustive REST API specification
+│   └── PS_TRACEABILITY.md        # Technical specification traceability matrix
+├── frontend/
+│   ├── src/
+│   │   ├── components/           # UI components (RiskBadge, Cytoscape graph, etc.)
+│   │   ├── pages/                # Workspace views (Fraud, Audit, Compliance, etc.)
+│   │   ├── services/             # Axios API client bindings
+│   │   ├── types/                # TypeScript type definitions
+│   │   ├── App.tsx               # Application routing and layout
+│   │   └── main.tsx              # React 19 application root
+│   ├── package.json              # Node dependencies & build scripts
+│   ├── tsconfig.json             # TypeScript configuration
+│   └── vite.config.ts            # Vite 8 build configuration
+├── scripts/                      # Root CLI entrypoint proxies (runpy execution)
+├── pyrefly.toml                  # Pyrefly type checker configuration
+├── pyrightconfig.json            # Pyright type checker configuration
+├── README.md                     # Project documentation
+└── requirements.txt              # Top-level requirements specification
+```
+
+---
+
+## Getting Started
 
 ### Prerequisites
-* Python 3.11+
-* Docker & Docker Compose (optional for containerized deployment)
+* **Python:** `3.11` to `3.14`
+* **Node.js:** `v20+` and `npm`
+* **Git**
 
-### Local Environment Installation
+---
+
+### 1. Backend Setup
+
 ```bash
 # Clone the repository
 git clone https://github.com/sukrut07/ParadigmHMX.git
 cd ParadigmHMX
 
-# Install dependencies
-pip install -r requirements.txt
-```
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 
----
+# Install Python dependencies
+pip install -r backend/requirements.txt
 
-## Environment Variables
-
-Copy `.env.example` to `.env` or set the following environment variables:
-
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `DATABASE_URL` | `sqlite:///./insidertrace.db` | SQLAlchemy database connection string (SQLite or PostgreSQL) |
-| `SECRET_KEY` | `dev-secret-key-insidertrace-2026` | Secret key for hashing and cryptographic operations |
-| `ENVIRONMENT` | `development` | Runtime environment (`development`, `test`, `production`) |
-| `STRUCTURING_THRESHOLD` | `50000.0` | Reporting threshold for smurfing detection |
-| `CYCLE_MAX_LENGTH` | `5` | Maximum path length for circular transfer cycle detection |
-| `CYCLE_MIN_AMOUNT` | `15000.0` | Minimum transfer amount for cycle detection filtering |
-
----
-
-## Database
-
-InsiderTrace supports both SQLite and PostgreSQL. Migrations are managed via Alembic:
-
-```bash
-# Run migrations from repository root or backend/
+# Run database migrations
+cd backend
 alembic upgrade head
-```
+cd ..
 
----
+# Seed the deterministic demo dataset
+python scripts/seed_demo.py
 
-## Generate Data
-
-Seed the deterministic synthetic banking dataset (500 customers, 600 accounts, 30 employees, 20,000 transactions, 10,000 access logs, and planted demo scenarios):
-
-```bash
-python scripts/generate_data.py --customers 500 --accounts 600 --transactions 20000 --events 10000 --seed 42
-```
-
----
-
-## Run Detection
-
-Execute the multi-signal detection pipeline across all 9 detectors and correlate signals into evidence-first alerts:
-
-```bash
+# Run live detection pipeline
 python scripts/run_detection.py
+
+# Launch FastAPI development server
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Backend will be available at: **`http://localhost:8000`**  
+Interactive Swagger docs: **`http://localhost:8000/docs`**
+
+---
+
+### 2. Frontend Setup
+
+In a separate terminal:
+
+```bash
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start Vite development server
+npm run dev
+```
+
+Frontend application will be live at: **`http://localhost:5173`**
+
+---
+
+## Verification & Testing Suite
+
+InsiderTrace maintains zero type errors and zero test failures across both backend and frontend.
+
+```bash
+# 1. Run all 27 Backend Pytest Tests (Unit, Determinism, Isolation, Scenarios)
+pytest backend/tests -v
+
+# 2. Run Python Type Checkers (Both Pyrefly and Pyright verify 0 errors natively)
+pyrefly check backend
+pyright
+
+# 3. Verify Code Compilation
+python -m compileall backend
+
+# 4. Check Alembic Migrations Consistency
+cd backend && alembic check && cd ..
+
+# 5. Frontend Type Checking & Production Build
+cd frontend
+npm run lint
+npm run build
 ```
 
 ---
 
-## Run Evaluation
+## CLI Utilities
 
-Run the benchmark evaluation engine against hidden ground-truth labels and compute ablation metrics:
+InsiderTrace provides standalone CLI scripts located in [`scripts/`](file:///Users/sukrutdusane/Documents/Projects%20/Sy/ParadigmHMX/scripts):
 
 ```bash
+# Seed the complete demo scenarios and banking baseline
+python scripts/seed_demo.py
+
+# Generate custom volume of synthetic banking data
+python scripts/generate_data.py --customers 500 --accounts 600 --transactions 20000 --events 10000 --seed 42
+
+# Execute the 9 detectors and correlate signals into alerts
+python scripts/run_detection.py
+
+# Run benchmark evaluation and ablation study against ground truth
 python scripts/evaluate.py
 ```
 
 ---
 
-## Run Tests
+## API Endpoints Reference
 
-Execute the full pytest suite (27 unit, scenario, evidence-first invariant, and determinism tests):
+All endpoints return unified JSON structures and adhere to the contract defined in [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
 
-```bash
-pytest -ra -q
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `GET` | `/health` | System status, database connectivity, and entity counts |
+| `GET` | `/demo/summary` | Statistical summary of active alerts, cases, and signals |
+| `GET` | `/alerts` | Query alerts filtered by `tier` (`CRITICAL`..`LOW`), `status`, and `limit` |
+| `GET` | `/alerts/{id}` | Complete alert investigation dossier (rule trace, counterfactuals) |
+| `GET` | `/alerts/{id}/graph` | Cytoscape-formatted entity subgraph centered around alert |
+| `GET` | `/alerts/{id}/timeline` | Chronological event stream merging logs, changes, and transfers |
+| `GET` | `/cases` | List investigative cases with status, priority, and assignee |
+| `POST` | `/cases` | Create a new investigation case linked to an alert |
+| `PATCH` | `/cases/{id}` | Update case status, assign reviewer, or append notes (enforces closure rules) |
+| `GET` | `/cases/{id}/export?format=json\|pdf` | Export legal evidence bundle in canonical JSON or ReportLab PDF |
+| `POST` | `/api/export/verify` | Verify cryptographic SHA-256 integrity of an exported dossier |
+| `GET` | `/employees/{id}/blast-radius` | Discovery of all accounts, customers, devices, and funds touched by staff |
+| `GET` | `/dashboard/fraud` | Real-time KPIs, priority alerts, and risk distribution for Fraud Analysts |
+| `GET` | `/dashboard/audit` | Employee anomaly $z$-scores, blast radius, and branch risk metrics |
+| `GET` | `/dashboard/compliance` | Regulatory metrics, precision/recall ablation, and resolution rates |
+| `POST` | `/simulation/attack` | In-memory red-team synthesis of attack scenarios across 7 typologies |
+| `GET` | `/evaluation/benchmark` | Isolated evaluation against ground truth (TP, FP, Precision, Recall, F1) |
+
+---
+
+## Cryptographic Evidence Integrity
+
+Every alert and case bundle exported by InsiderTrace is protected against tampering:
+1. **RFC 8785 Canonical JSON Serialization:** Dict keys are deterministically sorted, float precision normalized, and whitespace eliminated before hashing.
+2. **SHA-256 Digest Computation:** A unique 64-character cryptographic hash is calculated over the canonical payload and embedded into the export bundle.
+3. **Automated Verification Endpoint:** Calling `POST /api/export/verify` with the payload checks whether the recalculation matches `expected_hash`:
+   * Unaltered payload $\rightarrow$ `valid: true`
+   * Single character or timestamp alteration $\rightarrow$ `valid: false` (Mismatch flagged)
+
+---
+
+## Evaluation Methodology & Benchmarks
+
+Running `python scripts/evaluate.py` benchmarks the detection engine against planted ground-truth scenarios with strict isolation:
+
+```text
+================ EVALUATION METRICS ================
+True Positives (TP): 6 | False Positives (FP): 16 | True Negatives (TN): 16 | False Negatives (FN): 0
+Precision:      27.27%
+Recall:         100.00%
+F1 Score:       42.86%
+Detection Rate: 100.00%
+
+================ ABLATION STUDY ================
+Baseline (Financial Only)     ➔ Precision: 16.7% | Recall: 66.7%  | F1: 26.7% | FPR: 62.5%
+InsiderTrace (Fused Context)  ➔ Precision: 27.3% | Recall: 100.0% | F1: 42.9% | FPR: 50.0%
+Performance Lift              ➔ F1 Delta: +16.2% | Recall Delta: +33.3% | FPR Reduction: -12.5%
+
+================ HARD NEGATIVES TESTING ================
+Tested 32 hard negatives across corporate payroll lookalikes and rent schedules:
+True Negatives: 16 | Benign Isolation Rate: 50.0%
 ```
 
 ---
 
-## Docker
+## Docker Deployment
 
-Run the entire platform (PostgreSQL 16 + FastAPI Backend with automatic migrations and data seeding) via Docker Compose:
+To launch the full containerized environment with PostgreSQL 16:
 
 ```bash
-# Build and launch containers
 docker compose build
-docker compose up
+docker compose up -d
 ```
 
-Access the API at: `http://localhost:8000`
+Containers provisioned:
+* `insidertrace-db`: PostgreSQL 16 Alpine on port `5432`
+* `insidertrace-backend`: Python 3.13 FastAPI backend on port `8000` (auto-runs migrations, seeds demo data, executes detection, and starts server)
 
 ---
 
-## API Documentation
+## Regulatory Notice & Limitations
 
-When the backend is running, interactive OpenAPI documentation is available at:
-* Swagger UI: `http://localhost:8000/docs`
-* ReDoc: `http://localhost:8000/redoc`
-* OpenAPI JSON: `http://localhost:8000/openapi.json`
-* Detailed Frontend Contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md)
-
----
-
-## Demo Flow
-
-To demonstrate the full investigative lifecycle:
-
-1. **Inspect High-Risk Queue**: `GET /alerts?tier=CRITICAL` surfaces **Demo 1** (`EMP-017` teller limit increase followed by ₹280,000 dissipation into a circular laundering ring).
-2. **Review Evidence-First Dossier**: `GET /alerts/{id}` shows all cited records (`LOG-DEMO-02`, `CHG-DEMO-02`, `TX-DEMO-01`), the deterministic rule trace, and the counterfactual explanation.
-3. **Visualize Subgraph & Timeline**: `GET /alerts/{id}/graph` displays the focused case money flow; `GET /alerts/{id}/timeline` displays the chronological event stream.
-4. **Initiate & Progress Case**: `POST /cases` creates `CASE-XXXX`; `PATCH /cases/{id}` moves status to `IN_REVIEW` and appends reviewer notes.
-5. **Close with Invariants**: Attempting to close without `closure_reason` is rejected; closing with documented justification updates status to `CLOSED_CONFIRMED`.
-6. **Export Tamper-Evident Dossier**: `GET /cases/{id}/export?format=json` generates the canonical bundle with SHA-256 fingerprint; `GET /cases/{id}/export?format=pdf` generates the legal PDF dossier.
-7. **Verify Cryptographic Hash**: `POST /export/verify` validates the bundle integrity (`valid: true`). Modifying any field causes verification to fail (`valid: false`).
-8. **Assess Blast Radius**: `GET /employees/EMP-017/blast-radius` surfaces all 252 accounts touched by the rogue employee.
-9. **Demonstrate Hard Negative Resilience**: Show that **Demo 2** (30-employee monthly corporate payroll) is recognized as legitimate and does not trigger false escalations.
+> [!NOTE]
+> **Synthetic Demonstration Notice:**  
+> The dataset and scenarios included in this repository are **synthetically generated** for demonstration, research, and hackathon benchmarking. They do not contain real personally identifiable information (PII) or proprietary banking data.  
+> 
+> Production deployment in a regulated financial institution requires calibrating detector thresholds, peer-group baseline windows, and risk rule configurations against historical core banking logs, institutional AML policy, and local regulatory reporting mandates (e.g. FinCEN, RBI, FATF).
 
 ---
 
-## Evaluation Methodology
+## License
 
-The platform is evaluated against seeded ground-truth scenarios with strict isolation:
-* **Detection Metrics**: Confusion matrix (TP, TN, FP, FN), Precision, Recall, F1 Score, and False Positive Rate (FPR).
-* **Ablation Comparison**: Rigorous side-by-side comparison between **Baseline** (financial-only rules) and **InsiderTrace** (financial + employee context).
-* **Hard Negative Testing**: Evaluates benign lookalikes (payroll batches, rent payments, authorized exceptions) to ensure low false positive rates.
-
----
-
-## Limitations
-
-> **Evaluation uses synthetic data and is not representative of production banking performance.**  
-> Detection thresholds and rules are configured for hackathon demonstration scenarios. Production deployment requires calibration against historical core-banking baselines, institution-specific AML policies, and regulatory reporting mandates.
+InsiderTrace is open-source software licensed under the **Apache License 2.0**.
