@@ -1,12 +1,15 @@
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
 from app.models.transaction import Transaction
 from app.services.detection.base import BaseDetector
+
 
 class ActionTransactionDetector(BaseDetector):
     name: str = "ActionTransactionDetector"
@@ -15,10 +18,10 @@ class ActionTransactionDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         # Link employee actions/account changes to subsequent transactions on that account
         window_hours = settings.ACTION_TRANSACTION_WINDOW_HOURS
 
@@ -42,25 +45,29 @@ class ActionTransactionDetector(BaseDetector):
         # Combine modifications
         actions: list[dict[str, Any]] = []
         for chg in changes:
-            actions.append({
-                "source": "account_change",
-                "id": chg.id,
-                "employee_id": chg.employee_id,
-                "account_id": chg.account_id,
-                "field": chg.field,
-                "timestamp": chg.timestamp,
-                "details": f"Modified {chg.field}"
-            })
+            actions.append(
+                {
+                    "source": "account_change",
+                    "id": chg.id,
+                    "employee_id": chg.employee_id,
+                    "account_id": chg.account_id,
+                    "field": chg.field,
+                    "timestamp": chg.timestamp,
+                    "details": f"Modified {chg.field}",
+                }
+            )
         for log in logs:
-            actions.append({
-                "source": "access_log",
-                "id": log.id,
-                "employee_id": log.employee_id,
-                "account_id": log.account_id,
-                "field": log.action,
-                "timestamp": log.timestamp,
-                "details": f"Executed {log.action}"
-            })
+            actions.append(
+                {
+                    "source": "access_log",
+                    "id": log.id,
+                    "employee_id": log.employee_id,
+                    "account_id": log.account_id,
+                    "field": log.action,
+                    "timestamp": log.timestamp,
+                    "details": f"Executed {log.action}",
+                }
+            )
 
         # Pre-group transactions by from_account_id to eliminate N+1 query overhead
         tx_by_sender: dict[str, list[Transaction]] = defaultdict(list)
@@ -69,7 +76,7 @@ class ActionTransactionDetector(BaseDetector):
             all_tx_query = all_tx_query.filter(Transaction.id == transaction_id)
         elif account_id:
             all_tx_query = all_tx_query.filter(Transaction.from_account_id == account_id)
-        
+
         for t in all_tx_query.order_by(Transaction.timestamp.asc()).all():
             tx_by_sender[t.from_account_id].append(t)
 
@@ -81,8 +88,7 @@ class ActionTransactionDetector(BaseDetector):
             # Look for subsequent transactions from this account within window_hours
             cand_txs = tx_by_sender.get(acc_id, [])
             subsequent_txs = [
-                t for t in cand_txs
-                if act_time <= t.timestamp <= act_time + timedelta(hours=window_hours)
+                t for t in cand_txs if act_time <= t.timestamp <= act_time + timedelta(hours=window_hours)
             ]
             if not subsequent_txs:
                 continue
@@ -102,31 +108,27 @@ class ActionTransactionDetector(BaseDetector):
                     "record_id": act["id"],
                     "field": act["field"],
                     "value": f"{act['details']} on account {acc_id}",
-                    "details": {
-                        "employee_id": emp_id,
-                        "timestamp": act_time.isoformat()
-                    }
+                    "details": {"employee_id": emp_id, "timestamp": act_time.isoformat()},
                 }
             ]
 
             for t in subsequent_txs[:4]:
                 delta_m = (t.timestamp - act_time).total_seconds() / 60.0
-                evidence.append({
-                    "record_type": "transaction",
-                    "record_id": t.id,
-                    "field": "amount",
-                    "value": f"₹{t.amount:,.2f} transferred to {t.to_account_id}",
-                    "details": {
-                        "timestamp": t.timestamp.isoformat(),
-                        "time_delta_minutes": round(delta_m, 1),
-                        "recipient": t.to_account_id
+                evidence.append(
+                    {
+                        "record_type": "transaction",
+                        "record_id": t.id,
+                        "field": "amount",
+                        "value": f"₹{t.amount:,.2f} transferred to {t.to_account_id}",
+                        "details": {
+                            "timestamp": t.timestamp.isoformat(),
+                            "time_delta_minutes": round(delta_m, 1),
+                            "recipient": t.to_account_id,
+                        },
                     }
-                })
+                )
 
-            entities = [
-                {"type": "employee", "id": emp_id},
-                {"type": "account", "id": acc_id}
-            ]
+            entities = [{"type": "employee", "id": emp_id}, {"type": "account", "id": acc_id}]
 
             explanation = (
                 f"Employee {emp_id} performed '{act['details']}' on account {acc_id}. "
@@ -139,11 +141,7 @@ class ActionTransactionDetector(BaseDetector):
             confidence = 0.96
 
             sig = self.build_signal(
-                severity=severity,
-                confidence=confidence,
-                entities=entities,
-                evidence=evidence,
-                explanation=explanation
+                severity=severity, confidence=confidence, entities=entities, evidence=evidence, explanation=explanation
             )
             signals.append(sig)
 

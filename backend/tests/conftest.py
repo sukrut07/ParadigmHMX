@@ -1,31 +1,29 @@
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
 
 # Add backend directory to sys.path
 backend_path = Path(__file__).resolve().parent.parent
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
-from app.db.session import Base
-from app.db.seed import seed_demo_and_synthetic_dataset
-from app.main import app
 from app.api.deps import get_db
-
+from app.db.seed import seed_demo_and_synthetic_dataset
+from app.db.session import Base
+from app.main import app
 from sqlalchemy.pool import StaticPool
+
 
 @pytest.fixture(scope="function")
 def engine():
-    eng = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool
-    )
+    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(bind=eng)
     return eng
+
 
 @pytest.fixture(scope="function")
 def seeded_db(engine):
@@ -43,12 +41,13 @@ def seeded_db(engine):
         num_transactions=150,
         num_events=100,
         seed=42,
-        reset_db=False
+        reset_db=False,
     )
 
     yield session
 
     session.close()
+
 
 @pytest.fixture(scope="function")
 def client(seeded_db):

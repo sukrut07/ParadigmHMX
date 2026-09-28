@@ -1,9 +1,12 @@
 from datetime import time
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
-from app.models.employee import Employee
+
 from app.models.access_log import AccessLog
+from app.models.employee import Employee
 from app.services.detection.base import BaseDetector
+
 
 class OffHoursDetector(BaseDetector):
     name: str = "OffHoursDetector"
@@ -12,10 +15,10 @@ class OffHoursDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         query = db.query(AccessLog)
         if employee_id:
             query = query.filter(AccessLog.employee_id == employee_id)
@@ -67,19 +70,16 @@ class OffHoursDetector(BaseDetector):
                             "access_time": log_time.strftime("%H:%M:%S"),
                             "shift_start": emp.normal_work_start,
                             "shift_end": emp.normal_work_end,
-                            "device_id": log.device_id
-                        }
+                            "device_id": log.device_id,
+                        },
                     }
                 ]
 
-                entities = [
-                    {"type": "employee", "id": emp.id},
-                    {"type": "account", "id": log.account_id}
-                ]
+                entities = [{"type": "employee", "id": emp.id}, {"type": "account", "id": log.account_id}]
 
                 explanation = (
                     f"Employee {emp.id} accessed account {log.account_id} at {log_time.strftime('%H:%M:%S')}, "
-                    f"outside authorized shift window ({emp.normal_work_start}–{emp.normal_work_end}) "
+                    f"outside authorized shift window ({emp.normal_work_start}-{emp.normal_work_end}) "
                     f"for action '{log.action}' without recorded emergency exception."
                 )
 
@@ -91,7 +91,7 @@ class OffHoursDetector(BaseDetector):
                     confidence=confidence,
                     entities=entities,
                     evidence=evidence,
-                    explanation=explanation
+                    explanation=explanation,
                 )
                 signals.append(sig)
 

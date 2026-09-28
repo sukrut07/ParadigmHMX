@@ -1,5 +1,6 @@
-from app.services.detection.engine import DetectionEngine
 from app.services.correlation.linker import CorrelationLinker
+from app.services.detection.engine import DetectionEngine
+
 
 def test_every_alert_has_evidence(seeded_db):
     """

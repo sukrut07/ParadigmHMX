@@ -1,16 +1,19 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 
 def utc_now() -> datetime:
     """Returns current UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
+
 
 def to_iso(dt: datetime) -> str:
     """Converts datetime to ISO 8601 string."""
     if dt is None:
         return ""
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.isoformat()
+
 
 def parse_iso(dt_str: str) -> datetime:
     """Parses ISO 8601 string to datetime."""
@@ -18,5 +21,5 @@ def parse_iso(dt_str: str) -> datetime:
         return utc_now()
     dt = datetime.fromisoformat(dt_str)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt

@@ -1,15 +1,18 @@
-from typing import Dict, Any, List
 from collections import defaultdict
+from typing import Any
+
 from sqlalchemy.orm import Session
-from app.models.ground_truth import GroundTruth
-from app.models.alert import Alert
+
 from app.models.account import Account
+from app.models.alert import Alert
+from app.models.ground_truth import GroundTruth
+
 
 class EvaluationEngine:
     def __init__(self):
         pass
 
-    def evaluate(self, db: Session, alerts: List[Alert]) -> Dict[str, Any]:
+    def evaluate(self, db: Session, alerts: list[Alert]) -> dict[str, Any]:
         """
         Evaluates system detections against hidden GroundTruth labels.
         Safe against division-by-zero.
@@ -19,9 +22,13 @@ class EvaluationEngine:
         if not gt_records:
             return self._empty_evaluation()
 
-        gt_suspicious_accounts = {g.entity_id for g in gt_records if g.label == "suspicious" and g.entity_type == "account"}
-        gt_legitimate_accounts = {g.entity_id for g in gt_records if g.label == "legitimate" and g.entity_type == "account"}
-        
+        gt_suspicious_accounts = {
+            g.entity_id for g in gt_records if g.label == "suspicious" and g.entity_type == "account"
+        }
+        gt_legitimate_accounts = {
+            g.entity_id for g in gt_records if g.label == "legitimate" and g.entity_type == "account"
+        }
+
         # In case accounts in DB aren't explicitly marked as legitimate, all non-suspicious accounts are negative
         all_accounts = {a.id for a in db.query(Account).all()}
         if not gt_legitimate_accounts:
@@ -58,15 +65,10 @@ class EvaluationEngine:
             "f1": round(f1, 4),
             "fpr": round(fpr, 4),
             "detection_rate": round(detection_rate, 4),
-            "accuracy": round(accuracy, 4)
+            "accuracy": round(accuracy, 4),
         }
 
-        confusion_matrix = {
-            "true_positive": tp,
-            "true_negative": tn,
-            "false_positive": fp,
-            "false_negative": fn
-        }
+        confusion_matrix = {"true_positive": tp, "true_negative": tn, "false_positive": fp, "false_negative": fn}
 
         # Per-scenario recall
         per_scenario = []
@@ -78,15 +80,22 @@ class EvaluationEngine:
         for scen_type, accs in scenario_groups.items():
             scen_tp = len(accs.intersection(flagged_accounts))
             scen_recall = scen_tp / len(accs) if accs else 0.0
-            per_scenario.append({
-                "scenario_type": scen_type,
-                "total_ground_truth": len(accs),
-                "detected": scen_tp,
-                "recall": round(scen_recall, 4)
-            })
+            per_scenario.append(
+                {
+                    "scenario_type": scen_type,
+                    "total_ground_truth": len(accs),
+                    "detected": scen_tp,
+                    "recall": round(scen_recall, 4),
+                }
+            )
 
         # Hard negatives analysis
-        hard_neg_records = [g for g in gt_records if g.label == "legitimate" and "hard_negative" in g.scenario_type or g.scenario_type == "payroll_legitimate"]
+        hard_neg_records = [
+            g
+            for g in gt_records
+            if (g.label == "legitimate" and "hard_negative" in g.scenario_type)
+            or g.scenario_type == "payroll_legitimate"
+        ]
         hard_neg_accounts = {g.entity_id for g in hard_neg_records}
         hard_neg_fp = len(hard_neg_accounts.intersection(flagged_accounts))
         hard_neg_tn = len(hard_neg_accounts - flagged_accounts)
@@ -97,9 +106,8 @@ class EvaluationEngine:
             "false_positives": hard_neg_fp,
             "true_negatives": hard_neg_tn,
             "fp_rate": round(hard_neg_fpr, 4),
-            "scenarios_tested": list({g.scenario_type for g in hard_neg_records}) or [
-                "payroll_batch", "family_transfer", "rent_utility", "authorized_overnight"
-            ]
+            "scenarios_tested": list({g.scenario_type for g in hard_neg_records})
+            or ["payroll_batch", "family_transfer", "rent_utility", "authorized_overnight"],
         }
 
         # Ablation study: Baseline (financial only, no insider cross-link) vs Ours
@@ -124,26 +132,14 @@ class EvaluationEngine:
             "f1": round(b_f1, 4),
             "fpr": round(b_fpr, 4),
             "detection_rate": round(b_rec, 4),
-            "accuracy": round((baseline_tp + baseline_tn) / (baseline_tp + baseline_tn + baseline_fp + baseline_fn), 4)
+            "accuracy": round((baseline_tp + baseline_tn) / (baseline_tp + baseline_tn + baseline_fp + baseline_fn), 4),
         }
 
         detector_ablation = {
-            "without_ACTION_TRANSACTION_LINK": {
-                "f1_drop": 0.18,
-                "fpr_increase": 0.04
-            },
-            "without_OUT_OF_ROLE_ACCESS": {
-                "f1_drop": 0.12,
-                "fpr_increase": 0.01
-            },
-            "without_STRUCTURING": {
-                "f1_drop": 0.15,
-                "fpr_increase": 0.02
-            },
-            "without_CIRCULAR_TRANSFER": {
-                "f1_drop": 0.14,
-                "fpr_increase": 0.00
-            }
+            "without_ACTION_TRANSACTION_LINK": {"f1_drop": 0.18, "fpr_increase": 0.04},
+            "without_OUT_OF_ROLE_ACCESS": {"f1_drop": 0.12, "fpr_increase": 0.01},
+            "without_STRUCTURING": {"f1_drop": 0.15, "fpr_increase": 0.02},
+            "without_CIRCULAR_TRANSFER": {"f1_drop": 0.14, "fpr_increase": 0.00},
         }
 
         ablation = {
@@ -151,7 +147,7 @@ class EvaluationEngine:
             "ours_financial_and_insider": overall_metrics,
             "improvement_f1_delta": round(overall_metrics["f1"] - baseline_metrics["f1"], 4),
             "improvement_fpr_reduction": round(baseline_metrics["fpr"] - overall_metrics["fpr"], 4),
-            "detector_ablation": detector_ablation
+            "detector_ablation": detector_ablation,
         }
 
         return {
@@ -160,14 +156,21 @@ class EvaluationEngine:
             "per_scenario": per_scenario,
             "ablation": ablation,
             "hard_negatives": hard_negatives,
-            "evaluated_at": "now"
+            "evaluated_at": "now",
         }
 
-    def _empty_evaluation(self) -> Dict[str, Any]:
+    def _empty_evaluation(self) -> dict[str, Any]:
         empty_metrics = {
-            "tp": 0, "tn": 0, "fp": 0, "fn": 0,
-            "precision": 0.0, "recall": 0.0, "f1": 0.0,
-            "fpr": 0.0, "detection_rate": 0.0, "accuracy": 0.0
+            "tp": 0,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "fpr": 0.0,
+            "detection_rate": 0.0,
+            "accuracy": 0.0,
         }
         return {
             "overall": empty_metrics,
@@ -178,11 +181,14 @@ class EvaluationEngine:
                 "ours_financial_and_insider": empty_metrics,
                 "improvement_f1_delta": 0.0,
                 "improvement_fpr_reduction": 0.0,
-                "detector_ablation": {}
+                "detector_ablation": {},
             },
             "hard_negatives": {
-                "total_hard_negatives": 0, "false_positives": 0, "true_negatives": 0, "fp_rate": 0.0,
-                "scenarios_tested": []
+                "total_hard_negatives": 0,
+                "false_positives": 0,
+                "true_negatives": 0,
+                "fp_rate": 0.0,
+                "scenarios_tested": [],
             },
-            "evaluated_at": "none"
+            "evaluated_at": "none",
         }

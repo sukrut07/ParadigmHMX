@@ -1,8 +1,11 @@
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime, ForeignKey
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+
+from sqlalchemy import DateTime, Float, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.session import Base
 from app.utils.time import utc_now
+
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -18,7 +21,9 @@ class Account(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
     customer = relationship("Customer", back_populates="accounts")
-    transactions_out = relationship("Transaction", foreign_keys="Transaction.from_account_id", back_populates="from_account")
+    transactions_out = relationship(
+        "Transaction", foreign_keys="Transaction.from_account_id", back_populates="from_account"
+    )
     transactions_in = relationship("Transaction", foreign_keys="Transaction.to_account_id", back_populates="to_account")
     access_logs = relationship("AccessLog", back_populates="account")
     account_changes = relationship("AccountChange", back_populates="account")

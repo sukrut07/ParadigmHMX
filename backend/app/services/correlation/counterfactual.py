@@ -1,17 +1,20 @@
-from typing import List, Dict, Any
 import copy
-from app.services.correlation.tier_engine import TierEngine, INSIDER_SIGNAL_TYPES, FINANCIAL_SIGNAL_TYPES
+from typing import Any
+
+from app.services.correlation.tier_engine import (
+    FINANCIAL_SIGNAL_TYPES,
+    INSIDER_SIGNAL_TYPES,
+    TierEngine,
+)
+
 
 class CounterfactualEngine:
     def __init__(self, tier_engine: TierEngine):
         self.tier_engine = tier_engine
 
     def generate_counterfactual(
-        self,
-        original_tier: str,
-        signals: List[Dict[str, Any]],
-        linked_entities: List[str]
-    ) -> Dict[str, Any]:
+        self, original_tier: str, signals: list[dict[str, Any]], linked_entities: list[str]
+    ) -> dict[str, Any]:
         """
         Generates a counterfactual explanation by systematically testing hypothesis modifications:
         1. What if insider signals were absent / authorized?
@@ -27,7 +30,7 @@ class CounterfactualEngine:
         if has_insider and has_financial:
             # Modify condition: remove insider signal (simulate employee was authorized or did not touch account)
             counterfactual_signals = [s for s in signals if s["signal_type"] not in INSIDER_SIGNAL_TYPES]
-            cf_entities = [e for e in linked_entities if not str(e).startswith("EMP-")]
+            cf_entities = [e for e in linked_entities if not e.startswith("EMP-")]
             cf_tier, _ = self.tier_engine.evaluate_tier(counterfactual_signals, cf_entities)
 
             insider_sig_names = [s["signal_type"] for s in signals if s["signal_type"] in INSIDER_SIGNAL_TYPES]
@@ -41,7 +44,7 @@ class CounterfactualEngine:
                 "condition_changed": condition_changed,
                 "original_tier": original_tier,
                 "counterfactual_tier": cf_tier,
-                "explanation": explanation
+                "explanation": explanation,
             }
 
         # Scenario 2: Financial-only signals (e.g. structuring or circular)
@@ -51,8 +54,10 @@ class CounterfactualEngine:
             if counterfactual_signals:
                 counterfactual_signals.pop(0)
             cf_tier, _ = self.tier_engine.evaluate_tier(counterfactual_signals, linked_entities)
-            
-            condition_changed = "Aggregated transaction amounts remained strictly within expected personal profile limits"
+
+            condition_changed = (
+                "Aggregated transaction amounts remained strictly within expected personal profile limits"
+            )
             explanation = (
                 f"If the transaction amounts had remained within typical customer profile benchmarks without "
                 f"splitting or circular flow, the alert tier would downgrade from {original_tier} to {cf_tier}."
@@ -61,7 +66,7 @@ class CounterfactualEngine:
                 "condition_changed": condition_changed,
                 "original_tier": original_tier,
                 "counterfactual_tier": cf_tier,
-                "explanation": explanation
+                "explanation": explanation,
             }
 
         # Scenario 3: Insider-only signal (e.g. bulk lookup or off-hours)
@@ -75,7 +80,7 @@ class CounterfactualEngine:
                 "condition_changed": condition_changed,
                 "original_tier": original_tier,
                 "counterfactual_tier": "LOW",
-                "explanation": explanation
+                "explanation": explanation,
             }
 
         # Default fallback
@@ -83,5 +88,5 @@ class CounterfactualEngine:
             "condition_changed": "Transaction amounts and access logs match baseline parameters",
             "original_tier": original_tier,
             "counterfactual_tier": "LOW",
-            "explanation": "In the absence of anomalous indicators, this case would be classified as LOW risk."
+            "explanation": "In the absence of anomalous indicators, this case would be classified as LOW risk.",
         }

@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
+
+from app.services.detection.validator import validate_signal
 from app.utils.ids import generate_id
 from app.utils.time import utc_now
-from app.services.detection.validator import validate_signal
+
 
 class BaseDetector(ABC):
     name: str = "BaseDetector"
@@ -13,26 +16,25 @@ class BaseDetector(ABC):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Executes detection over database session, optionally filtered by entity.
         Returns list of valid signal dicts.
         """
-        pass
 
     def build_signal(
         self,
         severity: str,
         confidence: float,
-        entities: List[Dict[str, str]],
-        evidence: List[Dict[str, Any]],
+        entities: list[dict[str, str]],
+        evidence: list[dict[str, Any]],
         explanation: str,
-        signal_id: Optional[str] = None,
-        signal_type: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        signal_id: str | None = None,
+        signal_type: str | None = None,
+    ) -> dict[str, Any]:
         """
         Constructs and validates a Signal object.
         """

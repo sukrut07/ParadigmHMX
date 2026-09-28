@@ -1,15 +1,16 @@
-from typing import List, Optional
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, get_current_user, SecurityContext
+
+from app.api.deps import SecurityContext, get_current_user, get_db
 from app.models.alert import Alert
-from app.models.signal import Signal
 from app.models.audit import AuditLog
-from app.schemas.alert import AlertListItem, AlertDetailResponse
-from app.schemas.signal import SignalResponse
+from app.models.signal import Signal
+from app.schemas.alert import AlertDetailResponse, AlertListItem
 from app.schemas.graph import GraphResponse
-from app.schemas.timeline import TimelineResponse, TimelineEvent
+from app.schemas.signal import SignalResponse
+from app.schemas.timeline import TimelineEvent, TimelineResponse
 from app.services.graph.builder import GraphBuilder
 from app.services.timeline.builder import TimelineBuilder
 from app.utils.ids import generate_id
@@ -20,18 +21,19 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
 graph_builder = GraphBuilder()
 timeline_builder = TimelineBuilder()
 
-@router.get("", response_model=List[AlertListItem])
+
+@router.get("", response_model=list[AlertListItem])
 def list_alerts(
-    tier: Optional[str] = Query(None, description="LOW, MEDIUM, HIGH, CRITICAL"),
-    status_filter: Optional[str] = Query(None, alias="status"),
-    employee_id: Optional[str] = Query(None),
-    account_id: Optional[str] = Query(None),
-    date_from: Optional[datetime] = Query(None),
-    date_to: Optional[datetime] = Query(None),
+    tier: str | None = Query(None, description="LOW, MEDIUM, HIGH, CRITICAL"),
+    status_filter: str | None = Query(None, alias="status"),
+    employee_id: str | None = Query(None),
+    account_id: str | None = Query(None),
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
+    user: SecurityContext = Depends(get_current_user),
 ):
     """
     List alerts with multi-dimensional filtering, pagination, and sorting.
@@ -60,27 +62,26 @@ def list_alerts(
         primary_emp = next((e for e in a.entity_ids if e.startswith("EMP-")), None)
         primary_acc = next((e for e in a.entity_ids if e.startswith("ACC-")), None)
 
-        filtered.append(AlertListItem(
-            id=a.id,
-            tier=a.tier,
-            title=a.title,
-            summary=a.summary,
-            primary_signal=a.signal_ids[0] if a.signal_ids else None,
-            employee_id=primary_emp,
-            account_id=primary_acc,
-            status=a.status,
-            created_at=a.created_at,
-            updated_at=a.updated_at
-        ))
+        filtered.append(
+            AlertListItem(
+                id=a.id,
+                tier=a.tier,
+                title=a.title,
+                summary=a.summary,
+                primary_signal=a.signal_ids[0] if a.signal_ids else None,
+                employee_id=primary_emp,
+                account_id=primary_acc,
+                status=a.status,
+                created_at=a.created_at,
+                updated_at=a.updated_at,
+            )
+        )
 
     return filtered
 
+
 @router.get("/{alert_id}", response_model=AlertDetailResponse)
-def get_alert_detail(
-    alert_id: str,
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-):
+def get_alert_detail(alert_id: str, db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)):
     """
     Returns complete investigation dossier for an alert:
     Evidence, rule trace, counterfactuals, timeline, and graph snapshot.
@@ -89,7 +90,7 @@ def get_alert_detail(
     if not alert:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": {"code": "ALERT_NOT_FOUND", "message": f"Alert '{alert_id}' does not exist."}}
+            detail={"error": {"code": "ALERT_NOT_FOUND", "message": f"Alert '{alert_id}' does not exist."}},
         )
 
     # Log audit
@@ -100,7 +101,7 @@ def get_alert_detail(
         target_type="ALERT",
         target_id=alert.id,
         metadata_json={"user_role": user.role},
-        timestamp=utc_now()
+        timestamp=utc_now(),
     )
     db.add(audit)
     db.commit()
@@ -117,7 +118,7 @@ def get_alert_detail(
             "evidence": s.evidence,
             "evidence_record_ids": s.evidence_record_ids,
             "explanation": s.explanation,
-            "detected_at": s.detected_at
+            "detected_at": s.detected_at,
         }
         for s in signals
     ]
@@ -138,15 +139,16 @@ def get_alert_detail(
         signals=[SignalResponse(**s) for s in signals_data],
         status=alert.status,
         created_at=alert.created_at,
-        updated_at=alert.updated_at
+        updated_at=alert.updated_at,
     )
+
 
 @router.get("/{alert_id}/graph", response_model=GraphResponse)
 def get_alert_graph(
     alert_id: str,
     depth: int = Query(2, ge=1, le=3),
     db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
+    user: SecurityContext = Depends(get_current_user),
 ):
     """
     Returns NetworkX generated sub-graph focused on the entities of this alert.
@@ -158,12 +160,13 @@ def get_alert_graph(
     res = graph_builder.build_network(db, focus_entity_ids=set(alert.entity_ids), max_depth=depth)
     return GraphResponse(**res)
 
+
 @router.get("/{alert_id}/timeline", response_model=TimelineResponse)
 def get_alert_timeline(
     alert_id: str,
     limit: int = Query(50, ge=5, le=200),
     db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
+    user: SecurityContext = Depends(get_current_user),
 ):
     """
     Returns chronological merged event timeline for this alert's entities.

@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+
 def test_ground_truth_not_exposed_in_normal_alert_apis(client: TestClient):
     """
     GROUND TRUTH ISOLATION TEST (Section 49):

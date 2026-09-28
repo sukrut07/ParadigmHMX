@@ -1,9 +1,11 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class ValidationError(ValueError):
     pass
 
-def validate_signal(signal_data: Dict[str, Any]) -> bool:
+
+def validate_signal(signal_data: dict[str, Any]) -> bool:
     """
     Validates that a Signal conforms strictly to the contract.
     Mandatory:
@@ -16,11 +18,11 @@ def validate_signal(signal_data: Dict[str, Any]) -> bool:
     """
     if not signal_data.get("signal_type"):
         raise ValidationError("Signal missing required field 'signal_type'")
-    
+
     severity = signal_data.get("severity")
     if severity not in ("LOW", "MEDIUM", "HIGH", "CRITICAL"):
         raise ValidationError(f"Invalid severity '{severity}'. Must be LOW, MEDIUM, HIGH, or CRITICAL.")
-    
+
     entities = signal_data.get("entities")
     if not isinstance(entities, list) or len(entities) == 0:
         raise ValidationError("Signal must have at least one entity")
@@ -45,7 +47,8 @@ def validate_signal(signal_data: Dict[str, Any]) -> bool:
 
     return True
 
-def validate_alert(alert_data: Dict[str, Any]) -> bool:
+
+def validate_alert(alert_data: dict[str, Any]) -> bool:
     """
     Validates that an Alert conforms strictly to the contract.
     An alert cannot exist without evidence and explanation!

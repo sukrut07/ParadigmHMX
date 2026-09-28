@@ -13,3 +13,6 @@ pytest>=8.0.0
 httpx>=0.28.0
 psycopg-binary>=3.2.0
 python-multipart>=0.0.20
+types-PyYAML>=6.0.0
+types-networkx>=3.0.0
+types-reportlab>=4.0.0

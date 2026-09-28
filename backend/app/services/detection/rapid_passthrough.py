@@ -1,9 +1,12 @@
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models.transaction import Transaction
 from app.services.detection.base import BaseDetector
+
 
 class RapidPassThroughDetector(BaseDetector):
     name: str = "RapidPassThroughDetector"
@@ -12,15 +15,17 @@ class RapidPassThroughDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
         if transaction_id:
             query = query.filter(Transaction.id == transaction_id)
         if account_id:
-            query = query.filter((Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id))
+            query = query.filter(
+                (Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id)
+            )
 
         transactions = query.order_by(Transaction.timestamp.asc()).all()
         if not transactions:
@@ -76,8 +81,8 @@ class RapidPassThroughDetector(BaseDetector):
                                     "amount": tx_in.amount,
                                     "from": tx_in.from_account_id,
                                     "to": acc,
-                                    "timestamp": tx_in.timestamp.isoformat()
-                                }
+                                    "timestamp": tx_in.timestamp.isoformat(),
+                                },
                             },
                             {
                                 "record_type": "transaction",
@@ -88,21 +93,21 @@ class RapidPassThroughDetector(BaseDetector):
                                     "amount": tx_out.amount,
                                     "from": acc,
                                     "to": tx_out.to_account_id,
-                                    "timestamp": tx_out.timestamp.isoformat()
-                                }
-                            }
+                                    "timestamp": tx_out.timestamp.isoformat(),
+                                },
+                            },
                         ]
 
                         entities = [
                             {"type": "account", "id": acc},
                             {"type": "account", "id": tx_in.from_account_id},
-                            {"type": "account", "id": tx_out.to_account_id}
+                            {"type": "account", "id": tx_out.to_account_id},
                         ]
 
                         explanation = (
                             f"Account {acc} exhibited rapid mule/pass-through activity: "
                             f"received ₹{tx_in.amount:,.2f} from {tx_in.from_account_id} and transferred out "
-                            f"₹{tx_out.amount:,.2f} ({ratio*100:.1f}%) to {tx_out.to_account_id} within "
+                            f"₹{tx_out.amount:,.2f} ({ratio * 100:.1f}%) to {tx_out.to_account_id} within "
                             f"{delta_hours:.1f} hours, retaining minimal balance."
                         )
 
@@ -111,7 +116,7 @@ class RapidPassThroughDetector(BaseDetector):
                             confidence=0.86,
                             entities=entities,
                             evidence=evidence,
-                            explanation=explanation
+                            explanation=explanation,
                         )
                         signals.append(sig)
 

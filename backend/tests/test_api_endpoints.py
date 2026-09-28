@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+
 def test_health_and_demo_summary(client: TestClient):
     h_resp = client.get("/health")
     assert h_resp.status_code == 200
@@ -8,6 +9,7 @@ def test_health_and_demo_summary(client: TestClient):
     d_resp = client.get("/demo/summary")
     assert d_resp.status_code == 200
     assert d_resp.json()["accounts"] > 0
+
 
 def test_alerts_and_cases_workflow(client: TestClient):
     # 1. Run detection
@@ -40,22 +42,29 @@ def test_alerts_and_cases_workflow(client: TestClient):
     assert "events" in timeline_resp.json()
 
     # 5. Create Case from Alert
-    case_create_resp = client.post("/cases", json={
-        "alert_id": alert_id,
-        "priority": "HIGH",
-        "initial_note": "Initiating formal insider fraud investigation."
-    })
+    case_create_resp = client.post(
+        "/cases",
+        json={
+            "alert_id": alert_id,
+            "priority": "HIGH",
+            "initial_note": "Initiating formal insider fraud investigation.",
+        },
+    )
     assert case_create_resp.status_code == 201
     case = case_create_resp.json()
     case_id = case["id"]
     assert case["status"] == "OPEN"
 
     # 6. Update Case (Assign and Change Status to IN_REVIEW)
-    patch_resp = client.patch(f"/cases/{case_id}", json={
-        "assignee_id": "USR-REVIEWER-2",
-        "status": "IN_REVIEW",
-        "note": "Case assigned for cross-branch forensic review."
-    }, headers={"X-User-Role": "REVIEWER"})
+    patch_resp = client.patch(
+        f"/cases/{case_id}",
+        json={
+            "assignee_id": "USR-REVIEWER-2",
+            "status": "IN_REVIEW",
+            "note": "Case assigned for cross-branch forensic review.",
+        },
+        headers={"X-User-Role": "REVIEWER"},
+    )
     assert patch_resp.status_code == 200
     assert patch_resp.json()["status"] == "IN_REVIEW"
 
@@ -74,12 +83,10 @@ def test_alerts_and_cases_workflow(client: TestClient):
     assert len(export_pdf_resp.content) > 100
 
     # 9. Verify Tamper-evident Hash
-    verify_resp = client.post("/evidence/verify", json={
-        "bundle": bundle,
-        "hash": sha256_hash
-    })
+    verify_resp = client.post("/evidence/verify", json={"bundle": bundle, "hash": sha256_hash})
     assert verify_resp.status_code == 200
     assert verify_resp.json()["valid"] is True
+
 
 def test_employee_blast_radius(client: TestClient):
     resp = client.get("/employees/EMP-017/blast-radius")
@@ -90,11 +97,9 @@ def test_employee_blast_radius(client: TestClient):
     assert "actions_performed" in data
     assert "timeline" in data
 
+
 def test_red_team_simulation_api(client: TestClient):
-    sim_resp = client.post("/simulate", json={
-        "scenario_type": "structuring",
-        "intensity": 1.2
-    })
+    sim_resp = client.post("/simulate", json={"scenario_type": "structuring", "intensity": 1.2})
     assert sim_resp.status_code == 200
     sim_data = sim_resp.json()
     assert sim_data["scenario_type"] == "structuring"

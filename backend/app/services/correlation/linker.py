@@ -1,16 +1,19 @@
-from typing import List, Dict, Any
-from collections import defaultdict
 import hashlib
+from collections import defaultdict
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.models.alert import Alert
-from app.utils.ids import generate_id
-from app.utils.time import utc_now
-from app.services.correlation.tier_engine import TierEngine
-from app.services.correlation.rule_trace import build_rule_trace
 from app.services.correlation.counterfactual import CounterfactualEngine
+from app.services.correlation.rule_trace import build_rule_trace
+from app.services.correlation.tier_engine import TierEngine
+from app.services.detection.validator import validate_alert
 from app.services.graph.builder import GraphBuilder
 from app.services.timeline.builder import TimelineBuilder
-from app.services.detection.validator import validate_alert
+from app.utils.ids import generate_id
+from app.utils.time import utc_now
+
 
 class CorrelationLinker:
     def __init__(self):
@@ -19,7 +22,7 @@ class CorrelationLinker:
         self.graph_builder = GraphBuilder()
         self.timeline_builder = TimelineBuilder()
 
-    def correlate_and_generate_alerts(self, db: Session, signals: List[Dict[str, Any]]) -> List[Alert]:
+    def correlate_and_generate_alerts(self, db: Session, signals: list[dict[str, Any]]) -> list[Alert]:
         """
         Clusters signals across entity and causal linkages, evaluates risk tiers,
         builds rule traces and counterfactual explanations, and persists alerts.
@@ -31,8 +34,11 @@ class CorrelationLinker:
         # Financial and cross-domain signals link primarily through shared accounts.
         # Purely insider signals (without financial crime) link by employee.
         financial_signal_types = {
-            "CIRCULAR_TRANSFER", "STRUCTURING", "RAPID_PASSTHROUGH",
-            "PROFILE_MISMATCH", "ACTION_TRANSACTION_LINK"
+            "CIRCULAR_TRANSFER",
+            "STRUCTURING",
+            "RAPID_PASSTHROUGH",
+            "PROFILE_MISMATCH",
+            "ACTION_TRANSACTION_LINK",
         }
 
         adj = defaultdict(set)
@@ -44,7 +50,7 @@ class CorrelationLinker:
                 if ent.get("type") == "account":
                     account_to_signals[ent["id"]].add(idx)
 
-        for acc_id, sig_indices in account_to_signals.items():
+        for _acc_id, sig_indices in account_to_signals.items():
             sig_list = list(sig_indices)
             for i in range(len(sig_list)):
                 for j in range(i + 1, len(sig_list)):
@@ -58,18 +64,20 @@ class CorrelationLinker:
             if sig_type not in financial_signal_types:
                 # Check if this signal touches an account with a financial signal
                 has_financial_acc = any(
-                    ent["id"] in account_to_signals and any(
+                    ent["id"] in account_to_signals
+                    and any(
                         signals[s_idx]["signal_type"] in financial_signal_types
                         for s_idx in account_to_signals[ent["id"]]
                     )
-                    for ent in sig.get("entities", []) if ent.get("type") == "account"
+                    for ent in sig.get("entities", [])
+                    if ent.get("type") == "account"
                 )
                 if not has_financial_acc:
                     for ent in sig.get("entities", []):
                         if ent.get("type") == "employee":
                             employee_to_signals[ent["id"]].add(idx)
 
-        for emp_id, sig_indices in employee_to_signals.items():
+        for _emp_id, sig_indices in employee_to_signals.items():
             sig_list = list(sig_indices)
             for i in range(len(sig_list)):
                 for j in range(i + 1, len(sig_list)):
@@ -113,7 +121,7 @@ class CorrelationLinker:
                     elif ent["type"] == "employee":
                         employees.add(ent["id"])
 
-            linked_entities_list = sorted(list(all_entities))
+            linked_entities_list = sorted(all_entities)
 
             # 2. Evaluate Tier and matched rules
             tier, matched_rules = self.tier_engine.evaluate_tier(cluster_signals, linked_entities_list)
@@ -123,15 +131,13 @@ class CorrelationLinker:
                 tier=tier,
                 matched_rules=matched_rules,
                 signals=cluster_signals,
-                accounts=sorted(list(accounts)),
-                employees=sorted(list(employees))
+                accounts=sorted(accounts),
+                employees=sorted(employees),
             )
 
             # 4. Counterfactual explanation
             counterfactual = self.counterfactual_engine.generate_counterfactual(
-                original_tier=tier,
-                signals=cluster_signals,
-                linked_entities=linked_entities_list
+                original_tier=tier, signals=cluster_signals, linked_entities=linked_entities_list
             )
 
             # 5. Graph and Timeline snapshots
@@ -157,11 +163,13 @@ class CorrelationLinker:
             # Title and summary
             primary_sig_type = cluster_signals[0]["signal_type"].replace("_", " ").title()
             if employees and accounts:
-                title = f"{tier}: Insider Linked Risk — Employee {list(employees)[0]} & Account {list(accounts)[0]}"
+                title = (
+                    f"{tier}: Insider Linked Risk — Employee {next(iter(employees))} & Account {next(iter(accounts))}"
+                )
             elif accounts:
-                title = f"{tier}: Financial Anomaly ({primary_sig_type}) on Account {list(accounts)[0]}"
+                title = f"{tier}: Financial Anomaly ({primary_sig_type}) on Account {next(iter(accounts))}"
             elif employees:
-                title = f"{tier}: Insider Policy Anomaly — Employee {list(employees)[0]}"
+                title = f"{tier}: Insider Policy Anomaly — Employee {next(iter(employees))}"
             else:
                 title = f"{tier}: Suspicious Cluster ({primary_sig_type})"
 
@@ -179,7 +187,7 @@ class CorrelationLinker:
                 existing_alert.rule_trace = rule_trace
                 existing_alert.counterfactual = counterfactual
                 existing_alert.evidence = merged_evidence
-                existing_alert.evidence_record_ids = sorted(list(merged_record_ids))
+                existing_alert.evidence_record_ids = sorted(merged_record_ids)
                 existing_alert.graph_snapshot = graph_snapshot
                 existing_alert.timeline_snapshot = timeline_snapshot
                 alerts_created.append(existing_alert)
@@ -193,7 +201,7 @@ class CorrelationLinker:
                 "signal_ids": signal_ids,
                 "entity_ids": linked_entities_list,
                 "evidence": merged_evidence,
-                "evidence_record_ids": sorted(list(merged_record_ids)),
+                "evidence_record_ids": sorted(merged_record_ids),
                 "rule_trace": rule_trace,
                 "counterfactual": counterfactual,
                 "graph_snapshot": graph_snapshot,
@@ -201,7 +209,7 @@ class CorrelationLinker:
                 "status": "OPEN",
                 "dedup_hash": dedup_hash,
                 "created_at": utc_now(),
-                "updated_at": utc_now()
+                "updated_at": utc_now(),
             }
 
             # Mandatory validation!

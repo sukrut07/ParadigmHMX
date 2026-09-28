@@ -1,28 +1,29 @@
-from typing import List, Dict, Any
-from datetime import datetime, timedelta, timezone
 from collections import defaultdict
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import numpy as np
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, get_current_user, SecurityContext
-from app.models.alert import Alert
-from app.models.case import Case
-from app.models.signal import Signal
-from app.models.employee import Employee
+from app.api.deps import SecurityContext, get_current_user, get_db
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
+from app.models.alert import Alert
 from app.models.audit import AuditLog
+from app.models.case import Case
+from app.models.employee import Employee
+from app.models.signal import Signal
 from app.services.evaluation.metrics import EvaluationEngine
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 eval_engine = EvaluationEngine()
 
+
 @router.get("/fraud")
 def get_fraud_dashboard(
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> Dict[str, Any]:
+    db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)
+) -> dict[str, Any]:
     """
     Returns the Fraud Analyst operational overview:
     KPIs, alert trend, risk distribution, signal distribution, priority alerts, top entities.
@@ -34,10 +35,10 @@ def get_fraud_dashboard(
     # Tier counts
     tier_counts: dict[str, int] = defaultdict(int)
     for a in alerts:
-        tier_counts[str(a.tier)] += 1
+        tier_counts[a.tier] += 1
 
     open_cases_count = sum(1 for c in cases if c.status in ("OPEN", "IN_REVIEW", "ESCALATED"))
-    
+
     # Calculate case-alert linkage
     cased_alert_ids = {c.alert_id for c in cases if c.alert_id}
     unassigned_count = sum(1 for a in alerts if a.id not in cased_alert_ids)
@@ -54,13 +55,14 @@ def get_fraud_dashboard(
                     suspicious_accounts.add(ent)
 
     # Alerts created in last 24h
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     day_ago = now - timedelta(hours=24)
-    def is_recent(dt):
+
+    def is_recent(dt: datetime | None) -> bool:
         if not dt:
             return False
-        if dt.tzinfo is not None:
-            dt = dt.replace(tzinfo=None)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
         return dt >= day_ago
 
     alerts_today = sum(1 for a in alerts if is_recent(a.created_at)) if alerts else 0
@@ -72,24 +74,26 @@ def get_fraud_dashboard(
         alerts,
         key=lambda x: (
             0 if x.tier == "CRITICAL" else (1 if x.tier == "HIGH" else (2 if x.tier == "MEDIUM" else 3)),
-            -x.created_at.timestamp() if x.created_at else 0
-        )
+            -x.created_at.timestamp() if x.created_at else 0,
+        ),
     )
     priority_alerts = []
     for a in sorted_alerts[:8]:
         primary_emp = next((e for e in a.entity_ids if e.startswith("EMP-")), None)
         primary_acc = next((e for e in a.entity_ids if e.startswith("ACC-")), None)
-        priority_alerts.append({
-            "id": a.id,
-            "tier": a.tier,
-            "title": a.title,
-            "summary": a.summary,
-            "employee_id": primary_emp,
-            "account_id": primary_acc,
-            "signal_count": len(a.signal_ids) if isinstance(a.signal_ids, (list, tuple)) else 0,
-            "status": a.status,
-            "created_at": a.created_at.isoformat() if a.created_at else None
-        })
+        priority_alerts.append(
+            {
+                "id": a.id,
+                "tier": a.tier,
+                "title": a.title,
+                "summary": a.summary,
+                "employee_id": primary_emp,
+                "account_id": primary_acc,
+                "signal_count": len(a.signal_ids) if isinstance(a.signal_ids, (list, tuple)) else 0,
+                "status": a.status,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+        )
 
     # Top entity rankings
     emp_alert_counts = defaultdict(int)
@@ -97,9 +101,9 @@ def get_fraud_dashboard(
     for a in alerts:
         for ent in a.entity_ids:
             if ent.startswith("EMP-"):
-                emp_alert_counts[ent] += (3 if a.tier == "CRITICAL" else (2 if a.tier == "HIGH" else 1))
+                emp_alert_counts[ent] += 3 if a.tier == "CRITICAL" else (2 if a.tier == "HIGH" else 1)
             elif ent.startswith("ACC-"):
-                acc_alert_counts[ent] += (3 if a.tier == "CRITICAL" else (2 if a.tier == "HIGH" else 1))
+                acc_alert_counts[ent] += 3 if a.tier == "CRITICAL" else (2 if a.tier == "HIGH" else 1)
 
     top_employees = [
         {"id": eid, "weight": wt, "risk": "CRITICAL" if wt >= 3 else ("HIGH" if wt >= 2 else "MEDIUM")}
@@ -125,27 +129,24 @@ def get_fraud_dashboard(
             "unassigned_alerts": unassigned_count,
             "suspicious_employees": len(suspicious_employees),
             "suspicious_accounts": len(suspicious_accounts),
-            "alerts_today": alerts_today
+            "alerts_today": alerts_today,
         },
         "risk_distribution": {
             "CRITICAL": tier_counts["CRITICAL"],
             "HIGH": tier_counts["HIGH"],
             "MEDIUM": tier_counts["MEDIUM"],
-            "LOW": tier_counts["LOW"]
+            "LOW": tier_counts["LOW"],
         },
         "signal_distribution": dict(signal_counts),
         "priority_alerts": priority_alerts,
-        "top_entities": {
-            "employees": top_employees,
-            "accounts": top_accounts
-        }
+        "top_entities": {"employees": top_employees, "accounts": top_accounts},
     }
+
 
 @router.get("/audit")
 def get_audit_dashboard(
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> Dict[str, Any]:
+    db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)
+) -> dict[str, Any]:
     """
     Returns the Internal Audit / Employee Intelligence overview:
     Employee risk distribution, off-hours events, privilege violations, peer deviations, employee risk table.
@@ -162,10 +163,10 @@ def get_audit_dashboard(
     emp_modifications = defaultdict(int)
     emp_off_hours = defaultdict(int)
 
-    for l in logs:
-        emp_accesses[l.employee_id] += 1
-        if l.action in ("OVERRIDE", "APPROVE"):
-            emp_overrides[l.employee_id] += 1
+    for log in logs:
+        emp_accesses[log.employee_id] += 1
+        if log.action in ("OVERRIDE", "APPROVE"):
+            emp_overrides[log.employee_id] += 1
 
     for c in changes:
         emp_modifications[c.employee_id] += 1
@@ -222,18 +223,20 @@ def get_audit_dashboard(
             "overrides": ovr_count,
             "off_hours": off_count,
             "linked_alerts_count": linked_count,
-            "deviation_sigma": f"+{z_score}σ" if z_score > 0 else "0.0σ"
+            "deviation_sigma": f"+{z_score}σ" if z_score > 0 else "0.0σ",
         }
         employee_table.append(row)
 
         if z_score >= 1.0 or emp.id in ("EMP-017", "EMP-022"):
-            top_deviations.append({
-                "employee_id": emp.id,
-                "role": emp.role.name if emp.role else "Staff",
-                "deviation_sigma": f"+{z_score}σ",
-                "lookups": acc_count,
-                "peer_mean": round(mean_lookups, 1)
-            })
+            top_deviations.append(
+                {
+                    "employee_id": emp.id,
+                    "role": emp.role.name if emp.role else "Staff",
+                    "deviation_sigma": f"+{z_score}σ",
+                    "lookups": acc_count,
+                    "peer_mean": round(mean_lookups, 1),
+                }
+            )
 
     # Sort employee table by risk priority
     risk_rank = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
@@ -265,25 +268,25 @@ def get_audit_dashboard(
             "bulk_lookup_anomalies": bulk_anomalies,
             "account_modifications": total_modifications,
             "employees_monitored": len(employees),
-            "linked_financial_alerts": sum(1 for r in employee_table if r["linked_alerts_count"] > 0)
+            "linked_financial_alerts": sum(1 for r in employee_table if r["linked_alerts_count"] > 0),
         },
         "behaviour_anomalies": {
             "off_hours": total_off_hours,
             "bulk_lookup": bulk_anomalies,
             "overrides": sum(emp_overrides.values()),
             "kyc_edits": sum(1 for c in changes if c.field in ("phone", "email", "address")),
-            "limit_changes": sum(1 for c in changes if "limit" in c.field.lower())
+            "limit_changes": sum(1 for c in changes if "limit" in c.field.lower()),
         },
         "top_deviations": top_deviations[:5],
         "branch_risk": branch_risk,
-        "employee_table": employee_table
+        "employee_table": employee_table,
     }
+
 
 @router.get("/compliance")
 def get_compliance_dashboard(
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> Dict[str, Any]:
+    db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)
+) -> dict[str, Any]:
     """
     Returns the Compliance Head system-level executive overview:
     Detection accuracy, precision, recall, FPR, case pipeline, evidence integrity status.
@@ -302,7 +305,7 @@ def get_compliance_dashboard(
         "open": sum(1 for c in cases if c.status == "OPEN"),
         "in_review": sum(1 for c in cases if c.status == "IN_REVIEW"),
         "escalated": sum(1 for c in cases if c.status == "ESCALATED"),
-        "resolved": sum(1 for c in cases if c.status in ("CLOSED_CONFIRMED", "CLOSED_FALSE_POSITIVE"))
+        "resolved": sum(1 for c in cases if c.status in ("CLOSED_CONFIRMED", "CLOSED_FALSE_POSITIVE")),
     }
 
     # Evidence exports & verifications
@@ -317,13 +320,43 @@ def get_compliance_dashboard(
     # Detector-level breakdown
     detector_performance = [
         {"detector": "Structuring Detector", "precision": "94.2%", "recall": "91.0%", "f1": "92.6%", "fpr": "4.1%"},
-        {"detector": "Circular Transfer Detector", "precision": "96.5%", "recall": "88.5%", "f1": "92.3%", "fpr": "2.8%"},
-        {"detector": "Action-to-Transaction Linker", "precision": "98.1%", "recall": "95.0%", "f1": "96.5%", "fpr": "1.2%"},
-        {"detector": "Rapid Pass-Through Detector", "precision": "89.4%", "recall": "87.0%", "f1": "88.2%", "fpr": "5.6%"},
-        {"detector": "Out-of-Role Access Detector", "precision": "95.0%", "recall": "93.2%", "f1": "94.1%", "fpr": "3.0%"},
+        {
+            "detector": "Circular Transfer Detector",
+            "precision": "96.5%",
+            "recall": "88.5%",
+            "f1": "92.3%",
+            "fpr": "2.8%",
+        },
+        {
+            "detector": "Action-to-Transaction Linker",
+            "precision": "98.1%",
+            "recall": "95.0%",
+            "f1": "96.5%",
+            "fpr": "1.2%",
+        },
+        {
+            "detector": "Rapid Pass-Through Detector",
+            "precision": "89.4%",
+            "recall": "87.0%",
+            "f1": "88.2%",
+            "fpr": "5.6%",
+        },
+        {
+            "detector": "Out-of-Role Access Detector",
+            "precision": "95.0%",
+            "recall": "93.2%",
+            "f1": "94.1%",
+            "fpr": "3.0%",
+        },
         {"detector": "Privilege Abuse Detector", "precision": "91.2%", "recall": "84.0%", "f1": "87.5%", "fpr": "6.1%"},
         {"detector": "Bulk Lookup Anomaly", "precision": "92.0%", "recall": "90.0%", "f1": "91.0%", "fpr": "4.5%"},
-        {"detector": "Profile Mismatch Detector", "precision": "87.5%", "recall": "81.0%", "f1": "84.1%", "fpr": "7.2%"}
+        {
+            "detector": "Profile Mismatch Detector",
+            "precision": "87.5%",
+            "recall": "81.0%",
+            "f1": "84.1%",
+            "fpr": "7.2%",
+        },
     ]
 
     return {
@@ -335,7 +368,7 @@ def get_compliance_dashboard(
             "open_cases": case_pipeline["open"] + case_pipeline["in_review"],
             "escalated_cases": case_pipeline["escalated"],
             "average_resolution_days": "3.8 days",
-            "evidence_exports": evidence_exports_count
+            "evidence_exports": evidence_exports_count,
         },
         "case_pipeline": case_pipeline,
         "detector_performance": detector_performance,
@@ -345,48 +378,51 @@ def get_compliance_dashboard(
             "verified": verified_count,
             "pending": max(evidence_exports_count - verified_count, 0),
             "failed_verification": 0,
-            "last_verification": datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M:%S UTC"),
-            "integrity_status": "SECURE_VERIFIED"
+            "last_verification": datetime.now(UTC).strftime("%d %b %Y, %H:%M:%S UTC"),
+            "integrity_status": "SECURE_VERIFIED",
         },
-        "benchmark_label": "Evaluation computed deterministically against isolated ground-truth benchmark."
+        "benchmark_label": "Evaluation computed deterministically against isolated ground-truth benchmark.",
     }
+
 
 @router.get("/alerts/trend")
 def get_alert_trend(
     timeframe: str = Query("7d", description="24h, 7d, 30d"),
     db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> List[Dict[str, Any]]:
+    user: SecurityContext = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     """
     Returns chronological alert counts grouped by tier.
     """
     alerts = db.query(Alert).order_by(Alert.created_at.asc()).all()
-    
+
     # Bucket by date
     buckets: dict[str, dict[str, int]] = defaultdict(lambda: {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0})
     for a in alerts:
         d_str = a.created_at.strftime("%b %d") if a.created_at else "Sep 20"
-        tier_key = str(a.tier)
+        tier_key = a.tier
         if tier_key in buckets[d_str]:
             buckets[d_str][tier_key] += 1
 
     trend = []
     for d_str, counts in buckets.items():
-        trend.append({
-            "date": d_str,
-            "CRITICAL": counts["CRITICAL"],
-            "HIGH": counts["HIGH"],
-            "MEDIUM": counts["MEDIUM"],
-            "LOW": counts["LOW"],
-            "total": sum(counts.values())
-        })
+        trend.append(
+            {
+                "date": d_str,
+                "CRITICAL": counts["CRITICAL"],
+                "HIGH": counts["HIGH"],
+                "MEDIUM": counts["MEDIUM"],
+                "LOW": counts["LOW"],
+                "total": sum(counts.values()),
+            }
+        )
     return trend
+
 
 @router.get("/risk-distribution")
 def get_risk_distribution(
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> Dict[str, int]:
+    db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)
+) -> dict[str, int]:
     alerts = db.query(Alert).all()
     counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
     for a in alerts:
@@ -394,22 +430,22 @@ def get_risk_distribution(
             counts[a.tier] += 1
     return counts
 
+
 @router.get("/signals")
 def get_signals_distribution(
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> Dict[str, int]:
+    db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)
+) -> dict[str, int]:
     signals = db.query(Signal).all()
     counts = defaultdict(int)
     for s in signals:
         counts[s.signal_type] += 1
     return dict(counts)
 
+
 @router.get("/top-entities")
 def get_top_entities(
-    db: Session = Depends(get_db),
-    user: SecurityContext = Depends(get_current_user)
-) -> Dict[str, Any]:
+    db: Session = Depends(get_db), user: SecurityContext = Depends(get_current_user)
+) -> dict[str, Any]:
     alerts = db.query(Alert).all()
     emp_counts = defaultdict(int)
     acc_counts = defaultdict(int)
@@ -430,5 +466,5 @@ def get_top_entities(
         "accounts": [
             {"id": k, "weight": v, "risk": "CRITICAL" if v >= 3 else ("HIGH" if v >= 2 else "MEDIUM")}
             for k, v in sorted(acc_counts.items(), key=lambda x: -x[1])[:10]
-        ]
+        ],
     }

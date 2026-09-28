@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
 from app.api.deps import get_db
-from app.models.customer import Customer
 from app.models.account import Account
-from app.models.employee import Employee
-from app.models.transaction import Transaction
-from app.models.signal import Signal
 from app.models.alert import Alert
 from app.models.case import Case
+from app.models.customer import Customer
+from app.models.employee import Employee
+from app.models.signal import Signal
+from app.models.transaction import Transaction
 
 router = APIRouter(prefix="/demo", tags=["Demo & Overview"])
+
 
 @router.get("/summary")
 def get_demo_summary(db: Session = Depends(get_db)):

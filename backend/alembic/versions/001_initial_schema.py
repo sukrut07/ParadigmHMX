@@ -1,24 +1,30 @@
 """initial schema
 
 Revision ID: 001_initial_schema
-Revises: 
+Revises:
 Create Date: 2026-09-28 23:00:00.000000
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
+
 from alembic import op
 
-revision: str = '001_initial_schema'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "001_initial_schema"
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
 
 def upgrade() -> None:
     bind = op.get_bind()
     from app.db.session import Base
+
     Base.metadata.create_all(bind=bind)
+
 
 def downgrade() -> None:
     bind = op.get_bind()
     from app.db.session import Base
+
     Base.metadata.drop_all(bind=bind)

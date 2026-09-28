@@ -1,31 +1,28 @@
-from typing import Dict, Any
 import random
 from datetime import timedelta
+from typing import Any
+
 from sqlalchemy.orm import Session
-from app.utils.time import utc_now
-from app.utils.ids import generate_id
-from app.models.customer import Customer
+
+from app.models.access_log import AccessLog
 from app.models.account import Account
+from app.models.account_change import AccountChange
+from app.models.customer import Customer
 from app.models.employee import Employee
 from app.models.role import Role
 from app.models.transaction import Transaction
-from app.models.access_log import AccessLog
-from app.models.account_change import AccountChange
-from app.services.detection.engine import DetectionEngine
 from app.services.correlation.linker import CorrelationLinker
+from app.services.detection.engine import DetectionEngine
+from app.utils.ids import generate_id
+from app.utils.time import utc_now
+
 
 class RedTeamSimulator:
     def __init__(self):
         self.detection_engine = DetectionEngine()
         self.linker = CorrelationLinker()
 
-    def simulate(
-        self,
-        db: Session,
-        scenario_type: str,
-        seed: int = 42,
-        intensity: float = 1.0
-    ) -> Dict[str, Any]:
+    def simulate(self, db: Session, scenario_type: str, seed: int = 42, intensity: float = 1.0) -> dict[str, Any]:
         """
         Synthesizes fresh adversary scenarios on demand, injects records,
         runs live detection and correlation, and validates defense efficacy.
@@ -52,7 +49,7 @@ class RedTeamSimulator:
                 role_id=role.id,
                 branch_id="BR-01",
                 normal_work_start="09:00",
-                normal_work_end="18:00"
+                normal_work_end="18:00",
             )
             db.add(emp)
             db.commit()
@@ -66,7 +63,7 @@ class RedTeamSimulator:
             generated_counts["customers"] += 1
 
             sim_accs = []
-            for i in range(ring_size):
+            for _ in range(ring_size):
                 acc = Account(id=generate_id("ACC"), customer_id=cust.id, branch_id="BR-01")
                 db.add(acc)
                 sim_accs.append(acc)
@@ -82,10 +79,10 @@ class RedTeamSimulator:
                     id=generate_id("TX"),
                     from_account_id=u,
                     to_account_id=v,
-                    amount=base_amt * (1.0 - (i * 0.02)), # slight attrition
+                    amount=base_amt * (1.0 - (i * 0.02)),  # slight attrition
                     timestamp=t_curr,
                     channel="UPI",
-                    status="COMPLETED"
+                    status="COMPLETED",
                 )
                 db.add(tx)
                 generated_counts["transactions"] += 1
@@ -112,7 +109,7 @@ class RedTeamSimulator:
                     amount=split_amt,
                     timestamp=t_curr,
                     channel="IMPS",
-                    status="COMPLETED"
+                    status="COMPLETED",
                 )
                 db.add(tx)
                 generated_counts["transactions"] += 1
@@ -136,7 +133,7 @@ class RedTeamSimulator:
                 employee_id=emp.id,
                 account_id=target_acc.id,
                 action="OVERRIDE",
-                timestamp=t_action
+                timestamp=t_action,
             )
             chg = AccountChange(
                 id=generate_id("CHG"),
@@ -144,7 +141,7 @@ class RedTeamSimulator:
                 employee_id=emp.id,
                 field="daily_limit",
                 timestamp=t_action + timedelta(minutes=3),
-                reason="Unverified limit boost"
+                reason="Unverified limit boost",
             )
             db.add_all([log, chg])
             generated_counts["logs"] += 1
@@ -158,13 +155,13 @@ class RedTeamSimulator:
                 amount=250000.0 * intensity,
                 timestamp=t_action + timedelta(minutes=20),
                 channel="NEFT",
-                status="COMPLETED"
+                status="COMPLETED",
             )
             db.add(tx1)
             generated_counts["transactions"] += 1
             db.commit()
 
-        else: # pass_through or profile_mismatch
+        else:  # pass_through or profile_mismatch
             expected_behavior = "Should detect mule pass-through velocity"
             cust = Customer(id=generate_id("CUST"), pseudonym_id=generate_id("P-CUST"), declared_income_max=20000.0)
             a1 = Account(id=generate_id("ACC"), customer_id=cust.id, branch_id="BR-01")
@@ -177,8 +174,24 @@ class RedTeamSimulator:
 
             t_in = now - timedelta(hours=2)
             amt = 90000.0 * intensity
-            tx_in = Transaction(id=generate_id("TX"), from_account_id=a1.id, to_account_id=a2.id, amount=amt, timestamp=t_in, channel="UPI", status="COMPLETED")
-            tx_out = Transaction(id=generate_id("TX"), from_account_id=a2.id, to_account_id=a3.id, amount=amt * 0.95, timestamp=t_in + timedelta(minutes=45), channel="UPI", status="COMPLETED")
+            tx_in = Transaction(
+                id=generate_id("TX"),
+                from_account_id=a1.id,
+                to_account_id=a2.id,
+                amount=amt,
+                timestamp=t_in,
+                channel="UPI",
+                status="COMPLETED",
+            )
+            tx_out = Transaction(
+                id=generate_id("TX"),
+                from_account_id=a2.id,
+                to_account_id=a3.id,
+                amount=amt * 0.95,
+                timestamp=t_in + timedelta(minutes=45),
+                channel="UPI",
+                status="COMPLETED",
+            )
             db.add_all([tx_in, tx_out])
             generated_counts["transactions"] += 2
             db.commit()
@@ -195,16 +208,15 @@ class RedTeamSimulator:
             "expected_behaviour": expected_behavior,
             "generated_records_count": generated_counts,
             "generated_records_summary": [
-                {"description": f"Injected {generated_counts['accounts']} accounts and {generated_counts['transactions']} transactions for {scenario_type} simulation."}
+                {
+                    "description": f"Injected {generated_counts['accounts']} accounts and {generated_counts['transactions']} transactions for {scenario_type} simulation."
+                }
             ],
             "detected_signals": [
                 {"signal_id": s["signal_id"], "signal_type": s["signal_type"], "severity": s["severity"]}
                 for s in det_res["signals"]
             ],
-            "detected_alerts": [
-                {"alert_id": a.id, "tier": a.tier, "title": a.title}
-                for a in new_alerts
-            ],
+            "detected_alerts": [{"alert_id": a.id, "tier": a.tier, "title": a.title} for a in new_alerts],
             "matched_expected": matched_expected,
-            "summary": f"Red-team simulation '{scenario_type}' executed successfully with intensity {intensity}. Generated {det_res['total_signals']} signals and {len(new_alerts)} alerts."
+            "summary": f"Red-team simulation '{scenario_type}' executed successfully with intensity {intensity}. Generated {det_res['total_signals']} signals and {len(new_alerts)} alerts.",
         }

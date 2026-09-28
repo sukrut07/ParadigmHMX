@@ -1,12 +1,15 @@
-from typing import Optional, Any
+from typing import Any
+
 from sqlalchemy.orm import Session
-from app.models.case import Case
+
 from app.models.alert import Alert
 from app.models.audit import AuditLog
+from app.models.case import Case
 from app.utils.ids import generate_id
 from app.utils.time import utc_now
 
 VALID_STATUSES = {"OPEN", "IN_REVIEW", "ESCALATED", "CLOSED_CONFIRMED", "CLOSED_FALSE_POSITIVE"}
+
 
 class CaseService:
     def __init__(self):
@@ -17,9 +20,9 @@ class CaseService:
         db: Session,
         alert_id: str,
         actor: str = "ANALYST-1",
-        assignee_id: Optional[str] = None,
+        assignee_id: str | None = None,
         priority: str = "MEDIUM",
-        initial_note: Optional[str] = None
+        initial_note: str | None = None,
     ) -> Case:
         alert = db.query(Alert).filter(Alert.id == alert_id).first()
         if not alert:
@@ -31,11 +34,7 @@ class CaseService:
 
         notes = []
         if initial_note:
-            notes.append({
-                "author": actor,
-                "text": initial_note,
-                "timestamp": utc_now().isoformat()
-            })
+            notes.append({"author": actor, "text": initial_note, "timestamp": utc_now().isoformat()})
 
         case_id = generate_id("CASE")
         new_case = Case(
@@ -46,7 +45,7 @@ class CaseService:
             priority=priority,
             notes=notes,
             created_at=utc_now(),
-            updated_at=utc_now()
+            updated_at=utc_now(),
         )
         db.add(new_case)
 
@@ -58,7 +57,7 @@ class CaseService:
             target_type="CASE",
             target_id=case_id,
             metadata_json={"alert_id": alert_id, "priority": priority, "assignee": assignee_id},
-            timestamp=utc_now()
+            timestamp=utc_now(),
         )
         db.add(audit)
 
@@ -71,11 +70,11 @@ class CaseService:
         db: Session,
         case_id: str,
         actor: str = "REVIEWER-1",
-        status: Optional[str] = None,
-        assignee_id: Optional[str] = None,
-        priority: Optional[str] = None,
-        note: Optional[str] = None,
-        closure_reason: Optional[str] = None
+        status: str | None = None,
+        assignee_id: str | None = None,
+        priority: str | None = None,
+        note: str | None = None,
+        closure_reason: str | None = None,
     ) -> Case:
         case = db.query(Case).filter(Case.id == case_id).first()
         if not case:
@@ -94,11 +93,7 @@ class CaseService:
         if note:
             raw_notes = case.notes
             case_notes = list(raw_notes) if isinstance(raw_notes, list) else []
-            case_notes.append({
-                "author": actor,
-                "text": note,
-                "timestamp": utc_now().isoformat()
-            })
+            case_notes.append({"author": actor, "text": note, "timestamp": utc_now().isoformat()})
             case.notes = case_notes
             audit_actions.append(("ADD_NOTE", {"text": note}))
 
@@ -111,10 +106,12 @@ class CaseService:
                 if not closure_reason or len(closure_reason.strip()) < 5:
                     raise ValueError(f"Status transition to '{status}' requires a detailed 'closure_reason'.")
                 if status == "CLOSED_CONFIRMED" and not note:
-                    raise ValueError("Closing case as CONFIRMED requires a reviewer note documenting evidence findings.")
+                    raise ValueError(
+                        "Closing case as CONFIRMED requires a reviewer note documenting evidence findings."
+                    )
                 case.closure_reason = closure_reason
                 case.closed_at = utc_now()
-            
+
             case.status = status
             audit_actions.append(("CHANGE_STATUS", {"new_status": status, "closure_reason": closure_reason}))
 
@@ -128,7 +125,7 @@ class CaseService:
                 target_type="CASE",
                 target_id=case.id,
                 metadata_json=meta,
-                timestamp=utc_now()
+                timestamp=utc_now(),
             )
             db.add(audit)
 

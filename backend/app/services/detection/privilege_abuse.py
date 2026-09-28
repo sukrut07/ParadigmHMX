@@ -1,10 +1,13 @@
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
 from app.services.detection.base import BaseDetector
+
 
 class PrivilegeAbuseDetector(BaseDetector):
     name: str = "PrivilegeAbuseDetector"
@@ -13,17 +16,17 @@ class PrivilegeAbuseDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         # Check AccountChanges and AccessLogs for high-privilege actions (OVERRIDE, APPROVE, limit increase, KYC override)
         query_changes = db.query(AccountChange)
         if employee_id:
             query_changes = query_changes.filter(AccountChange.employee_id == employee_id)
         if account_id:
             query_changes = query_changes.filter(AccountChange.account_id == account_id)
-        
+
         changes = query_changes.order_by(AccountChange.timestamp.asc()).all()
 
         query_logs = db.query(AccessLog).filter(AccessLog.action.in_(["OVERRIDE", "APPROVE"]))
@@ -41,24 +44,28 @@ class PrivilegeAbuseDetector(BaseDetector):
         emp_events = defaultdict(list)
         for chg in changes:
             if chg.field in ("daily_limit", "KYC", "risk_status", "beneficiary") or chg.approval_required:
-                emp_events[chg.employee_id].append({
-                    "type": "account_change",
-                    "id": chg.id,
-                    "field": chg.field,
-                    "account_id": chg.account_id,
-                    "timestamp": chg.timestamp,
-                    "reason": chg.reason
-                })
+                emp_events[chg.employee_id].append(
+                    {
+                        "type": "account_change",
+                        "id": chg.id,
+                        "field": chg.field,
+                        "account_id": chg.account_id,
+                        "timestamp": chg.timestamp,
+                        "reason": chg.reason,
+                    }
+                )
 
         for log in logs:
-            emp_events[log.employee_id].append({
-                "type": "access_log",
-                "id": log.id,
-                "field": log.action,
-                "account_id": log.account_id,
-                "timestamp": log.timestamp,
-                "reason": "Administrative override"
-            })
+            emp_events[log.employee_id].append(
+                {
+                    "type": "access_log",
+                    "id": log.id,
+                    "field": log.action,
+                    "account_id": log.account_id,
+                    "timestamp": log.timestamp,
+                    "reason": "Administrative override",
+                }
+            )
 
         for emp_id, ev_list in emp_events.items():
             ev_list.sort(key=lambda x: x["timestamp"])
@@ -76,16 +83,15 @@ class PrivilegeAbuseDetector(BaseDetector):
                     evidence = []
                     target_accounts = list({ev["account_id"] for ev in window})
                     for ev in window:
-                        evidence.append({
-                            "record_type": ev["type"],
-                            "record_id": ev["id"],
-                            "field": ev["field"],
-                            "value": f"{ev['field']} modification on {ev['account_id']}",
-                            "details": {
-                                "timestamp": ev["timestamp"].isoformat(),
-                                "reason": ev["reason"]
+                        evidence.append(
+                            {
+                                "record_type": ev["type"],
+                                "record_id": ev["id"],
+                                "field": ev["field"],
+                                "value": f"{ev['field']} modification on {ev['account_id']}",
+                                "details": {"timestamp": ev["timestamp"].isoformat(), "reason": ev["reason"]},
                             }
-                        })
+                        )
 
                     entities = [{"type": "employee", "id": emp_id}]
                     if len(target_accounts) == 1:
@@ -103,9 +109,9 @@ class PrivilegeAbuseDetector(BaseDetector):
                         confidence=0.92,
                         entities=entities,
                         evidence=evidence,
-                        explanation=explanation
+                        explanation=explanation,
                     )
                     signals.append(sig)
-                    break # avoid duplicate reports for overlapping windows
+                    break  # avoid duplicate reports for overlapping windows
 
         return signals

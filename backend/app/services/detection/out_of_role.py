@@ -1,9 +1,12 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from sqlalchemy.orm import Session
-from app.models.employee import Employee
+
 from app.models.access_log import AccessLog
+from app.models.employee import Employee
 from app.models.role import Role
 from app.services.detection.base import BaseDetector
+
 
 class OutOfRoleDetector(BaseDetector):
     name: str = "OutOfRoleDetector"
@@ -12,10 +15,10 @@ class OutOfRoleDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         query = db.query(AccessLog)
         if employee_id:
             query = query.filter(AccessLog.employee_id == employee_id)
@@ -61,15 +64,12 @@ class OutOfRoleDetector(BaseDetector):
                             "role_id": role.id,
                             "role_name": role.name,
                             "permitted_actions": permitted_actions,
-                            "permitted_branches": permitted_branches
-                        }
+                            "permitted_branches": permitted_branches,
+                        },
                     }
                 ]
 
-                entities = [
-                    {"type": "employee", "id": emp.id},
-                    {"type": "account", "id": log.account_id}
-                ]
+                entities = [{"type": "employee", "id": emp.id}, {"type": "account", "id": log.account_id}]
 
                 explanation = (
                     f"Employee {emp.id} with role '{role.name}' executed unauthorized action '{log.action}' "
@@ -84,7 +84,7 @@ class OutOfRoleDetector(BaseDetector):
                     confidence=confidence,
                     entities=entities,
                     evidence=evidence,
-                    explanation=explanation
+                    explanation=explanation,
                 )
                 signals.append(sig)
 

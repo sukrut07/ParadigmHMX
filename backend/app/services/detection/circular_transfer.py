@@ -1,9 +1,12 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 import networkx as nx
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models.transaction import Transaction
 from app.services.detection.base import BaseDetector
+
 
 class CircularTransferDetector(BaseDetector):
     name: str = "CircularTransferDetector"
@@ -12,19 +15,21 @@ class CircularTransferDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
         if transaction_id:
             query = query.filter(Transaction.id == transaction_id)
         elif account_id:
-            query = query.filter((Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id))
+            query = query.filter(
+                (Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id)
+            )
         else:
             # Laundering rings circulate substantial amounts; filters retail noise
             query = query.filter(Transaction.amount >= 15000.0)
-        
+
         transactions = query.order_by(Transaction.timestamp.asc()).all()
         if not transactions:
             return []
@@ -92,21 +97,23 @@ class CircularTransferDetector(BaseDetector):
             evidence = []
             entities: list[dict[str, str]] = [{"type": "account", "id": str(acc)} for acc in cycle]
             cycle_path_str = " → ".join(str(n) for n in cycle) + f" → {cycle[0]}"
-            
+
             for tx in valid_chain:
-                evidence.append({
-                    "record_type": "transaction",
-                    "record_id": tx.id,
-                    "field": "amount_and_route",
-                    "value": f"{tx.from_account_id} -> {tx.to_account_id}: ₹{tx.amount:,.2f}",
-                    "details": {
-                        "from_account": tx.from_account_id,
-                        "to_account": tx.to_account_id,
-                        "amount": tx.amount,
-                        "timestamp": tx.timestamp.isoformat(),
-                        "channel": tx.channel
+                evidence.append(
+                    {
+                        "record_type": "transaction",
+                        "record_id": tx.id,
+                        "field": "amount_and_route",
+                        "value": f"{tx.from_account_id} -> {tx.to_account_id}: ₹{tx.amount:,.2f}",
+                        "details": {
+                            "from_account": tx.from_account_id,
+                            "to_account": tx.to_account_id,
+                            "amount": tx.amount,
+                            "timestamp": tx.timestamp.isoformat(),
+                            "channel": tx.channel,
+                        },
                     }
-                })
+                )
 
             explanation = (
                 f"Detected {k}-hop circular money flow ({cycle_path_str}). "
@@ -118,11 +125,7 @@ class CircularTransferDetector(BaseDetector):
             confidence = 0.92
 
             sig = self.build_signal(
-                severity=severity,
-                confidence=confidence,
-                entities=entities,
-                evidence=evidence,
-                explanation=explanation
+                severity=severity, confidence=confidence, entities=entities, evidence=evidence, explanation=explanation
             )
             signals.append(sig)
 
@@ -141,7 +144,8 @@ class CircularTransferDetector(BaseDetector):
                 possible = True
                 for next_edge in rot_edges[1:]:
                     candidates = [
-                        t for t in tx_by_edge.get(next_edge, [])
+                        t
+                        for t in tx_by_edge.get(next_edge, [])
                         if t.timestamp >= curr_time and (t.timestamp - t0.timestamp).total_seconds() <= max_hours * 3600
                     ]
                     if not candidates:

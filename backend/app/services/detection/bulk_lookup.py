@@ -1,10 +1,13 @@
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from typing import Any
+
 import numpy as np
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models.access_log import AccessLog
 from app.services.detection.base import BaseDetector
+
 
 class BulkLookupDetector(BaseDetector):
     name: str = "BulkLookupDetector"
@@ -13,10 +16,10 @@ class BulkLookupDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         query = db.query(AccessLog)
         if employee_id:
             query = query.filter(AccessLog.employee_id == employee_id)
@@ -38,8 +41,8 @@ class BulkLookupDetector(BaseDetector):
 
         # Calculate peer baseline (daily unique accounts accessed by employees)
         daily_counts_all = []
-        for emp, days in emp_day_accounts.items():
-            for day, accs in days.items():
+        for days in emp_day_accounts.values():
+            for accs in days.values():
                 daily_counts_all.append(len(accs))
 
         if not daily_counts_all:
@@ -70,15 +73,13 @@ class BulkLookupDetector(BaseDetector):
                                 "unique_accounts_accessed": count,
                                 "peer_median": round(peer_median, 1),
                                 "peer_p90": round(peer_p90, 1),
-                                "deviation_ratio": round(count / baseline, 2)
-                            }
+                                "deviation_ratio": round(count / baseline, 2),
+                            },
                         }
                         for lid in sample_log_ids
                     ]
 
-                    entities = [
-                        {"type": "employee", "id": emp}
-                    ]
+                    entities = [{"type": "employee", "id": emp}]
 
                     explanation = (
                         f"Employee {emp} performed an anomalous volume of account lookups on {day}: "
@@ -92,7 +93,7 @@ class BulkLookupDetector(BaseDetector):
                         confidence=0.91,
                         entities=entities,
                         evidence=evidence,
-                        explanation=explanation
+                        explanation=explanation,
                     )
                     signals.append(sig)
 

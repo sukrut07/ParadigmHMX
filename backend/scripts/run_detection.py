@@ -8,8 +8,9 @@ else:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from app.db.session import SessionLocal
-from app.services.detection.engine import DetectionEngine
 from app.services.correlation.linker import CorrelationLinker
+from app.services.detection.engine import DetectionEngine
+
 
 def main():
     print("Running InsiderTrace detection pipeline across all 9 detectors...")
@@ -18,6 +19,7 @@ def main():
         from app.models.alert import Alert
         from app.models.case import Case
         from app.models.signal import Signal
+
         db.query(Case).delete()
         db.query(Alert).delete()
         db.query(Signal).delete()
@@ -38,6 +40,7 @@ def main():
 
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     main()

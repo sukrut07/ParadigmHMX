@@ -1,10 +1,13 @@
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.services.detection.base import BaseDetector
+
 
 class ProfileMismatchDetector(BaseDetector):
     name: str = "ProfileMismatchDetector"
@@ -13,15 +16,15 @@ class ProfileMismatchDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         # Fetch accounts with their customers
         query = db.query(Account)
         if account_id:
             query = query.filter(Account.id == account_id)
-        
+
         accounts = query.all()
         signals = []
 
@@ -29,7 +32,9 @@ class ProfileMismatchDetector(BaseDetector):
         tx_by_account = defaultdict(list)
         all_tx_query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
         if account_id:
-            all_tx_query = all_tx_query.filter((Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id))
+            all_tx_query = all_tx_query.filter(
+                (Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id)
+            )
         for tx in all_tx_query.all():
             tx_by_account[tx.from_account_id].append(tx)
             tx_by_account[tx.to_account_id].append(tx)
@@ -60,27 +65,23 @@ class ProfileMismatchDetector(BaseDetector):
                         "details": {
                             "income_band": customer.declared_income_band,
                             "kyc_status": customer.kyc_status,
-                            "risk_profile": customer.risk_profile
-                        }
+                            "risk_profile": customer.risk_profile,
+                        },
                     }
                 ]
 
                 for t in highest_txs:
-                    evidence.append({
-                        "record_type": "transaction",
-                        "record_id": t.id,
-                        "field": "amount",
-                        "value": f"Transaction ₹{t.amount:,.2f} on {t.timestamp.strftime('%Y-%m-%d')}",
-                        "details": {
-                            "amount": t.amount,
-                            "channel": t.channel
+                    evidence.append(
+                        {
+                            "record_type": "transaction",
+                            "record_id": t.id,
+                            "field": "amount",
+                            "value": f"Transaction ₹{t.amount:,.2f} on {t.timestamp.strftime('%Y-%m-%d')}",
+                            "details": {"amount": t.amount, "channel": t.channel},
                         }
-                    })
+                    )
 
-                entities = [
-                    {"type": "account", "id": acc.id},
-                    {"type": "customer", "id": customer.id}
-                ]
+                entities = [{"type": "account", "id": acc.id}, {"type": "customer", "id": customer.id}]
 
                 ratio = total_volume / (declared_max if declared_max > 0 else 1)
                 explanation = (
@@ -94,7 +95,7 @@ class ProfileMismatchDetector(BaseDetector):
                     confidence=0.85,
                     entities=entities,
                     evidence=evidence,
-                    explanation=explanation
+                    explanation=explanation,
                 )
                 signals.append(sig)
 

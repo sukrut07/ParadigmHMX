@@ -1,10 +1,13 @@
-from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from typing import Any
+
 from sqlalchemy.orm import Session
+
 from app.config import settings
-from app.models.transaction import Transaction
 from app.models.account import Account
+from app.models.transaction import Transaction
 from app.services.detection.base import BaseDetector
+
 
 class StructuringDetector(BaseDetector):
     name: str = "StructuringDetector"
@@ -13,15 +16,17 @@ class StructuringDetector(BaseDetector):
     def detect(
         self,
         db: Session,
-        account_id: Optional[str] = None,
-        employee_id: Optional[str] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        account_id: str | None = None,
+        employee_id: str | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
         if transaction_id:
             query = query.filter(Transaction.id == transaction_id)
         if account_id:
-            query = query.filter((Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id))
+            query = query.filter(
+                (Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id)
+            )
 
         transactions = query.order_by(Transaction.timestamp.asc()).all()
         if not transactions:
@@ -74,27 +79,31 @@ class StructuringDetector(BaseDetector):
                     # Found structuring group!
                     evidence = []
                     participating_targets = list({t.to_account_id for t in sub_threshold_txs})
-                    
+
                     for t in sub_threshold_txs:
-                        evidence.append({
-                            "record_type": "transaction",
-                            "record_id": t.id,
-                            "field": "amount",
-                            "value": f"₹{t.amount:,.2f} to {t.to_account_id}",
-                            "details": {
-                                "from_account": t.from_account_id,
-                                "to_account": t.to_account_id,
-                                "amount": t.amount,
-                                "timestamp": t.timestamp.isoformat(),
-                                "channel": t.channel
+                        evidence.append(
+                            {
+                                "record_type": "transaction",
+                                "record_id": t.id,
+                                "field": "amount",
+                                "value": f"₹{t.amount:,.2f} to {t.to_account_id}",
+                                "details": {
+                                    "from_account": t.from_account_id,
+                                    "to_account": t.to_account_id,
+                                    "amount": t.amount,
+                                    "timestamp": t.timestamp.isoformat(),
+                                    "channel": t.channel,
+                                },
                             }
-                        })
+                        )
 
                     # Primary investigated entity is the structuring sender account
                     entities = [{"type": "account", "id": sender_id}]
 
                     total_split = sum(t.amount for t in sub_threshold_txs)
-                    time_span_hours = (sub_threshold_txs[-1].timestamp - sub_threshold_txs[0].timestamp).total_seconds() / 3600
+                    time_span_hours = (
+                        sub_threshold_txs[-1].timestamp - sub_threshold_txs[0].timestamp
+                    ).total_seconds() / 3600
 
                     explanation = (
                         f"Account {sender_id} executed {len(sub_threshold_txs)} transactions just below threshold (₹{threshold:,.2f}) "
@@ -107,9 +116,9 @@ class StructuringDetector(BaseDetector):
                         confidence=0.88,
                         entities=entities,
                         evidence=evidence,
-                        explanation=explanation
+                        explanation=explanation,
                     )
                     signals.append(sig)
-                    break # avoid overlapping duplicate windows for same sender
+                    break  # avoid overlapping duplicate windows for same sender
 
         return signals

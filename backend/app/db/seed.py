@@ -1,17 +1,20 @@
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import numpy as np
 from sqlalchemy.orm import Session
+
 from app.db.session import Base
-from app.models.customer import Customer
-from app.models.account import Account
-from app.models.employee import Employee
-from app.models.role import Role
-from app.models.device import Device
-from app.models.transaction import Transaction
 from app.models.access_log import AccessLog
+from app.models.account import Account
 from app.models.account_change import AccountChange
+from app.models.customer import Customer
+from app.models.device import Device
+from app.models.employee import Employee
 from app.models.ground_truth import GroundTruth
+from app.models.role import Role
+from app.models.transaction import Transaction
+
 
 def seed_demo_and_synthetic_dataset(
     db: Session,
@@ -21,7 +24,7 @@ def seed_demo_and_synthetic_dataset(
     num_transactions: int = 20000,
     num_events: int = 10000,
     seed: int = 42,
-    reset_db: bool = True
+    reset_db: bool = True,
 ):
     """
     Deterministically seeds the database with roles, branches, devices, employees,
@@ -35,16 +38,52 @@ def seed_demo_and_synthetic_dataset(
     random.seed(seed)
     np.random.seed(seed)
 
-    base_date = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
+    base_date = datetime(2026, 9, 1, 0, 0, 0, tzinfo=UTC)
 
     # 1. Seed Roles
     roles_data = [
-        {"id": "ROLE-TELLER", "name": "Teller", "permitted_actions": ["VIEW", "CREATE"], "permitted_branches": ["BR-01", "BR-02", "BR-03", "BR-04"], "privilege_level": 1},
-        {"id": "ROLE-RM", "name": "Relationship Manager", "permitted_actions": ["VIEW", "EDIT"], "permitted_branches": ["BR-01", "BR-02"], "privilege_level": 2},
-        {"id": "ROLE-BM", "name": "Branch Manager", "permitted_actions": ["VIEW", "EDIT", "APPROVE", "OVERRIDE"], "permitted_branches": ["BR-01", "BR-02", "BR-03", "BR-04"], "privilege_level": 4},
-        {"id": "ROLE-OPS", "name": "Operations Analyst", "permitted_actions": ["VIEW", "EXPORT"], "permitted_branches": ["*"], "privilege_level": 2},
-        {"id": "ROLE-COMPL", "name": "Compliance Officer", "permitted_actions": ["VIEW", "EXPORT", "OVERRIDE"], "permitted_branches": ["*"], "privilege_level": 3},
-        {"id": "ROLE-ADMIN", "name": "System Administrator", "permitted_actions": ["VIEW", "EDIT", "APPROVE", "OVERRIDE", "CREATE", "DELETE", "EXPORT"], "permitted_branches": ["*"], "privilege_level": 5},
+        {
+            "id": "ROLE-TELLER",
+            "name": "Teller",
+            "permitted_actions": ["VIEW", "CREATE"],
+            "permitted_branches": ["BR-01", "BR-02", "BR-03", "BR-04"],
+            "privilege_level": 1,
+        },
+        {
+            "id": "ROLE-RM",
+            "name": "Relationship Manager",
+            "permitted_actions": ["VIEW", "EDIT"],
+            "permitted_branches": ["BR-01", "BR-02"],
+            "privilege_level": 2,
+        },
+        {
+            "id": "ROLE-BM",
+            "name": "Branch Manager",
+            "permitted_actions": ["VIEW", "EDIT", "APPROVE", "OVERRIDE"],
+            "permitted_branches": ["BR-01", "BR-02", "BR-03", "BR-04"],
+            "privilege_level": 4,
+        },
+        {
+            "id": "ROLE-OPS",
+            "name": "Operations Analyst",
+            "permitted_actions": ["VIEW", "EXPORT"],
+            "permitted_branches": ["*"],
+            "privilege_level": 2,
+        },
+        {
+            "id": "ROLE-COMPL",
+            "name": "Compliance Officer",
+            "permitted_actions": ["VIEW", "EXPORT", "OVERRIDE"],
+            "permitted_branches": ["*"],
+            "privilege_level": 3,
+        },
+        {
+            "id": "ROLE-ADMIN",
+            "name": "System Administrator",
+            "permitted_actions": ["VIEW", "EDIT", "APPROVE", "OVERRIDE", "CREATE", "DELETE", "EXPORT"],
+            "permitted_branches": ["*"],
+            "privilege_level": 5,
+        },
     ]
     for r in roles_data:
         db.add(Role(**r))
@@ -61,7 +100,7 @@ def seed_demo_and_synthetic_dataset(
             device_type=random.choice(["DESKTOP", "BRANCH_TERMINAL", "MOBILE", "ATM"]),
             branch_id=random.choice(branches),
             first_seen=base_date - timedelta(days=60),
-            last_seen=base_date + timedelta(days=30)
+            last_seen=base_date + timedelta(days=30),
         )
         devices.append(dev)
         db.add(dev)
@@ -76,7 +115,7 @@ def seed_demo_and_synthetic_dataset(
         joined_at=base_date - timedelta(days=365),
         normal_work_start="09:00",
         normal_work_end="18:00",
-        status="ACTIVE"
+        status="ACTIVE",
     )
     emp_demo_22 = Employee(
         id="EMP-022",
@@ -86,7 +125,7 @@ def seed_demo_and_synthetic_dataset(
         joined_at=base_date - timedelta(days=200),
         normal_work_start="09:00",
         normal_work_end="18:00",
-        status="ACTIVE"
+        status="ACTIVE",
     )
     employees = [emp_demo_17, emp_demo_22]
     db.add_all([emp_demo_17, emp_demo_22])
@@ -96,7 +135,7 @@ def seed_demo_and_synthetic_dataset(
         emp_id = f"EMP-{i:03d}"
         if emp_id in ("EMP-017", "EMP-022"):
             continue
-        
+
         r_id = random.choice(role_ids)
         b_id = random.choice(branches)
         if random.random() < 0.10:
@@ -112,7 +151,7 @@ def seed_demo_and_synthetic_dataset(
             joined_at=base_date - timedelta(days=random.randint(100, 1000)),
             normal_work_start=start_h,
             normal_work_end=end_h,
-            status="ACTIVE"
+            status="ACTIVE",
         )
         employees.append(emp)
         db.add(emp)
@@ -128,7 +167,7 @@ def seed_demo_and_synthetic_dataset(
             joined_at=base_date - timedelta(days=500),
             normal_work_start="09:00",
             normal_work_end="18:00",
-            status="ACTIVE"
+            status="ACTIVE",
         )
         employees.append(emp17)
         db.add(emp17)
@@ -141,7 +180,7 @@ def seed_demo_and_synthetic_dataset(
             joined_at=base_date - timedelta(days=400),
             normal_work_start="09:00",
             normal_work_end="18:00",
-            status="ACTIVE"
+            status="ACTIVE",
         )
         employees.append(emp22)
         db.add(emp22)
@@ -155,7 +194,16 @@ def seed_demo_and_synthetic_dataset(
         ("100000-250000", 100000.0, 250000.0),
         ("250000-1000000", 250000.0, 1000000.0),
     ]
-    occupations = ["Software Engineer", "Teacher", "Retail Shopkeeper", "Doctor", "Accountant", "Farmer", "Consultant", "Student"]
+    occupations = [
+        "Software Engineer",
+        "Teacher",
+        "Retail Shopkeeper",
+        "Doctor",
+        "Accountant",
+        "Farmer",
+        "Consultant",
+        "Student",
+    ]
 
     customers = []
     for i in range(1, num_customers + 1):
@@ -172,7 +220,7 @@ def seed_demo_and_synthetic_dataset(
             declared_income_max=max_inc,
             kyc_status="VERIFIED",
             risk_profile=risk,
-            created_at=base_date - timedelta(days=random.randint(60, 500))
+            created_at=base_date - timedelta(days=random.randint(60, 500)),
         )
         customers.append(cust)
         db.add(cust)
@@ -189,7 +237,7 @@ def seed_demo_and_synthetic_dataset(
         opened_at=base_date - timedelta(days=200),
         status="ACTIVE",
         daily_limit=50000.0,
-        currency="INR"
+        currency="INR",
     )
     acc_demo_mule1 = Account(
         id="ACC-0442",
@@ -199,7 +247,7 @@ def seed_demo_and_synthetic_dataset(
         opened_at=base_date - timedelta(days=120),
         status="ACTIVE",
         daily_limit=500000.0,
-        currency="INR"
+        currency="INR",
     )
     acc_demo_mule2 = Account(
         id="ACC-0553",
@@ -209,7 +257,7 @@ def seed_demo_and_synthetic_dataset(
         opened_at=base_date - timedelta(days=90),
         status="ACTIVE",
         daily_limit=500000.0,
-        currency="INR"
+        currency="INR",
     )
     # Legitimate Payroll Account
     acc_payroll = Account(
@@ -220,17 +268,23 @@ def seed_demo_and_synthetic_dataset(
         opened_at=base_date - timedelta(days=400),
         status="ACTIVE",
         daily_limit=5000000.0,
-        currency="INR"
+        currency="INR",
     )
     # Pure Financial Circular Accounts
-    acc_circ1 = Account(id="ACC-8801", customer_id=customers[20].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0)
-    acc_circ2 = Account(id="ACC-8802", customer_id=customers[21].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0)
-    acc_circ3 = Account(id="ACC-8803", customer_id=customers[22].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0)
+    acc_circ1 = Account(
+        id="ACC-8801", customer_id=customers[20].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0
+    )
+    acc_circ2 = Account(
+        id="ACC-8802", customer_id=customers[21].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0
+    )
+    acc_circ3 = Account(
+        id="ACC-8803", customer_id=customers[22].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0
+    )
 
     db.add_all([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
     accounts.extend([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
 
-    reserved_acc_ids: set[str] = {str(a.id) for a in accounts}
+    reserved_acc_ids: set[str] = {a.id for a in accounts}
     counter = 1
     while len(accounts) < num_accounts:
         candidate_id = f"ACC-{counter:04d}"
@@ -245,7 +299,7 @@ def seed_demo_and_synthetic_dataset(
             opened_at=base_date - timedelta(days=random.randint(30, 400)),
             status="ACTIVE",
             daily_limit=float(random.choice([50000, 100000, 200000, 500000])),
-            currency="INR"
+            currency="INR",
         )
         reserved_acc_ids.add(candidate_id)
         accounts.append(acc)
@@ -257,24 +311,117 @@ def seed_demo_and_synthetic_dataset(
     # DEMO SCENARIO 1: Insider Collusion & Circular Extraction (CRITICAL)
     # EMP-017 touches ACC-0231 (VIEW -> EDIT contact -> OVERRIDE limit -> ₹4.8L, ₹4.7L transfers -> ACC-0442 -> ACC-0553 -> ACC-0231)
     t0 = base_date + timedelta(days=5, hours=14, minutes=2)
-    
-    log1 = AccessLog(id="LOG-DEMO-01", employee_id="EMP-017", account_id="ACC-0231", action="VIEW", timestamp=t0, device_id="DEV-001", branch_id="BR-01")
-    chg1 = AccountChange(id="CHG-DEMO-01", account_id="ACC-0231", employee_id="EMP-017", field="phone", timestamp=t0 + timedelta(minutes=2), reason="Customer requested update over phone", approval_required=False)
-    log2 = AccessLog(id="LOG-DEMO-02", employee_id="EMP-017", account_id="ACC-0231", action="OVERRIDE", timestamp=t0 + timedelta(minutes=4), device_id="DEV-001", branch_id="BR-01")
-    chg2 = AccountChange(id="CHG-DEMO-02", account_id="ACC-0231", employee_id="EMP-017", field="daily_limit", timestamp=t0 + timedelta(minutes=4), reason="Immediate limit boost override", approval_required=True, approved_by=None)
 
-    tx_demo_1 = Transaction(id="TX-DEMO-01", from_account_id="ACC-0231", to_account_id="ACC-0442", amount=480000.0, channel="NEFT", timestamp=t0 + timedelta(minutes=29), status="COMPLETED")
-    tx_demo_2 = Transaction(id="TX-DEMO-02", from_account_id="ACC-0231", to_account_id="ACC-0553", amount=470000.0, channel="NEFT", timestamp=t0 + timedelta(minutes=40), status="COMPLETED")
-    tx_demo_3 = Transaction(id="TX-DEMO-03", from_account_id="ACC-0442", to_account_id="ACC-0553", amount=460000.0, channel="RTGS", timestamp=t0 + timedelta(minutes=61), status="COMPLETED")
-    tx_demo_4 = Transaction(id="TX-DEMO-04", from_account_id="ACC-0553", to_account_id="ACC-0231", amount=450000.0, channel="RTGS", timestamp=t0 + timedelta(minutes=85), status="COMPLETED")
+    log1 = AccessLog(
+        id="LOG-DEMO-01",
+        employee_id="EMP-017",
+        account_id="ACC-0231",
+        action="VIEW",
+        timestamp=t0,
+        device_id="DEV-001",
+        branch_id="BR-01",
+    )
+    chg1 = AccountChange(
+        id="CHG-DEMO-01",
+        account_id="ACC-0231",
+        employee_id="EMP-017",
+        field="phone",
+        timestamp=t0 + timedelta(minutes=2),
+        reason="Customer requested update over phone",
+        approval_required=False,
+    )
+    log2 = AccessLog(
+        id="LOG-DEMO-02",
+        employee_id="EMP-017",
+        account_id="ACC-0231",
+        action="OVERRIDE",
+        timestamp=t0 + timedelta(minutes=4),
+        device_id="DEV-001",
+        branch_id="BR-01",
+    )
+    chg2 = AccountChange(
+        id="CHG-DEMO-02",
+        account_id="ACC-0231",
+        employee_id="EMP-017",
+        field="daily_limit",
+        timestamp=t0 + timedelta(minutes=4),
+        reason="Immediate limit boost override",
+        approval_required=True,
+        approved_by=None,
+    )
+
+    tx_demo_1 = Transaction(
+        id="TX-DEMO-01",
+        from_account_id="ACC-0231",
+        to_account_id="ACC-0442",
+        amount=480000.0,
+        channel="NEFT",
+        timestamp=t0 + timedelta(minutes=29),
+        status="COMPLETED",
+    )
+    tx_demo_2 = Transaction(
+        id="TX-DEMO-02",
+        from_account_id="ACC-0231",
+        to_account_id="ACC-0553",
+        amount=470000.0,
+        channel="NEFT",
+        timestamp=t0 + timedelta(minutes=40),
+        status="COMPLETED",
+    )
+    tx_demo_3 = Transaction(
+        id="TX-DEMO-03",
+        from_account_id="ACC-0442",
+        to_account_id="ACC-0553",
+        amount=460000.0,
+        channel="RTGS",
+        timestamp=t0 + timedelta(minutes=61),
+        status="COMPLETED",
+    )
+    tx_demo_4 = Transaction(
+        id="TX-DEMO-04",
+        from_account_id="ACC-0553",
+        to_account_id="ACC-0231",
+        amount=450000.0,
+        channel="RTGS",
+        timestamp=t0 + timedelta(minutes=85),
+        status="COMPLETED",
+    )
 
     db.add_all([log1, chg1, log2, chg2, tx_demo_1, tx_demo_2, tx_demo_3, tx_demo_4])
 
     # Ground truth records (isolated from normal alert APIs)
-    gt1 = GroundTruth(id="GT-001", entity_type="account", entity_id="ACC-0231", label="suspicious", scenario_type="insider_collusion", scenario_id="SCEN-01-PRIMARY-DEMO")
-    gt2 = GroundTruth(id="GT-002", entity_type="account", entity_id="ACC-0442", label="suspicious", scenario_type="circular", scenario_id="SCEN-01-PRIMARY-DEMO")
-    gt3 = GroundTruth(id="GT-003", entity_type="account", entity_id="ACC-0553", label="suspicious", scenario_type="circular", scenario_id="SCEN-01-PRIMARY-DEMO")
-    gt4 = GroundTruth(id="GT-004", entity_type="employee", entity_id="EMP-017", label="suspicious", scenario_type="out_of_role", scenario_id="SCEN-01-PRIMARY-DEMO")
+    gt1 = GroundTruth(
+        id="GT-001",
+        entity_type="account",
+        entity_id="ACC-0231",
+        label="suspicious",
+        scenario_type="insider_collusion",
+        scenario_id="SCEN-01-PRIMARY-DEMO",
+    )
+    gt2 = GroundTruth(
+        id="GT-002",
+        entity_type="account",
+        entity_id="ACC-0442",
+        label="suspicious",
+        scenario_type="circular",
+        scenario_id="SCEN-01-PRIMARY-DEMO",
+    )
+    gt3 = GroundTruth(
+        id="GT-003",
+        entity_type="account",
+        entity_id="ACC-0553",
+        label="suspicious",
+        scenario_type="circular",
+        scenario_id="SCEN-01-PRIMARY-DEMO",
+    )
+    gt4 = GroundTruth(
+        id="GT-004",
+        entity_type="employee",
+        entity_id="EMP-017",
+        label="suspicious",
+        scenario_type="out_of_role",
+        scenario_id="SCEN-01-PRIMARY-DEMO",
+    )
     db.add_all([gt1, gt2, gt3, gt4])
 
     # -------------------------------------------------------------
@@ -292,10 +439,17 @@ def seed_demo_and_synthetic_dataset(
             channel="PAYROLL",
             timestamp=t_pay + timedelta(seconds=p_idx * 15),
             status="COMPLETED",
-            reference="MONTHLY_PAYROLL_SEPTEMBER_2026"
+            reference="MONTHLY_PAYROLL_SEPTEMBER_2026",
         )
         db.add(salary_tx)
-        gt_pay = GroundTruth(id=f"GT-PAY-{p_idx:03d}", entity_type="account", entity_id=emp_acc, label="legitimate", scenario_type="payroll_legitimate", scenario_id="SCEN-02-LEGIT-PAYROLL")
+        gt_pay = GroundTruth(
+            id=f"GT-PAY-{p_idx:03d}",
+            entity_type="account",
+            entity_id=emp_acc,
+            label="legitimate",
+            scenario_type="payroll_legitimate",
+            scenario_id="SCEN-02-LEGIT-PAYROLL",
+        )
         db.add(gt_pay)
 
     # -------------------------------------------------------------
@@ -312,23 +466,75 @@ def seed_demo_and_synthetic_dataset(
             action="VIEW",
             timestamp=t_ins + timedelta(minutes=b_idx * 3),
             device_id="DEV-002",
-            branch_id="BR-02"
+            branch_id="BR-02",
         )
         db.add(b_log)
-    gt_emp22 = GroundTruth(id="GT-EMP-022", entity_type="employee", entity_id="EMP-022", label="suspicious", scenario_type="bulk_lookup", scenario_id="SCEN-03-INSIDER-ONLY")
+    gt_emp22 = GroundTruth(
+        id="GT-EMP-022",
+        entity_type="employee",
+        entity_id="EMP-022",
+        label="suspicious",
+        scenario_type="bulk_lookup",
+        scenario_id="SCEN-03-INSIDER-ONLY",
+    )
     db.add(gt_emp22)
 
     # -------------------------------------------------------------
     # DEMO SCENARIO 4: Pure Financial Anomaly Without Insider (MEDIUM / HIGH FINANCIAL ONLY)
     # Circular 3-hop ring: ACC-8801 -> ACC-8802 -> ACC-8803 -> ACC-8801
     t_circ = base_date + timedelta(days=12, hours=15)
-    tx_c1 = Transaction(id="TX-CIRC-01", from_account_id="ACC-8801", to_account_id="ACC-8802", amount=85000.0, channel="UPI", timestamp=t_circ, status="COMPLETED")
-    tx_c2 = Transaction(id="TX-CIRC-02", from_account_id="ACC-8802", to_account_id="ACC-8803", amount=84000.0, channel="UPI", timestamp=t_circ + timedelta(minutes=30), status="COMPLETED")
-    tx_c3 = Transaction(id="TX-CIRC-03", from_account_id="ACC-8803", to_account_id="ACC-8801", amount=83000.0, channel="UPI", timestamp=t_circ + timedelta(minutes=65), status="COMPLETED")
+    tx_c1 = Transaction(
+        id="TX-CIRC-01",
+        from_account_id="ACC-8801",
+        to_account_id="ACC-8802",
+        amount=85000.0,
+        channel="UPI",
+        timestamp=t_circ,
+        status="COMPLETED",
+    )
+    tx_c2 = Transaction(
+        id="TX-CIRC-02",
+        from_account_id="ACC-8802",
+        to_account_id="ACC-8803",
+        amount=84000.0,
+        channel="UPI",
+        timestamp=t_circ + timedelta(minutes=30),
+        status="COMPLETED",
+    )
+    tx_c3 = Transaction(
+        id="TX-CIRC-03",
+        from_account_id="ACC-8803",
+        to_account_id="ACC-8801",
+        amount=83000.0,
+        channel="UPI",
+        timestamp=t_circ + timedelta(minutes=65),
+        status="COMPLETED",
+    )
     db.add_all([tx_c1, tx_c2, tx_c3])
-    gt_c1 = GroundTruth(id="GT-CIRC-01", entity_type="account", entity_id="ACC-8801", label="suspicious", scenario_type="circular", scenario_id="SCEN-04-FINANCIAL-ONLY")
-    gt_c2 = GroundTruth(id="GT-CIRC-02", entity_type="account", entity_id="ACC-8802", label="suspicious", scenario_type="circular", scenario_id="SCEN-04-FINANCIAL-ONLY")
-    gt_c3 = GroundTruth(id="GT-CIRC-03", entity_type="account", entity_id="ACC-8803", label="suspicious", scenario_type="circular", scenario_id="SCEN-04-FINANCIAL-ONLY")
+    gt_c1 = GroundTruth(
+        id="GT-CIRC-01",
+        entity_type="account",
+        entity_id="ACC-8801",
+        label="suspicious",
+        scenario_type="circular",
+        scenario_id="SCEN-04-FINANCIAL-ONLY",
+    )
+    gt_c2 = GroundTruth(
+        id="GT-CIRC-02",
+        entity_type="account",
+        entity_id="ACC-8802",
+        label="suspicious",
+        scenario_type="circular",
+        scenario_id="SCEN-04-FINANCIAL-ONLY",
+    )
+    gt_c3 = GroundTruth(
+        id="GT-CIRC-03",
+        entity_type="account",
+        entity_id="ACC-8803",
+        label="suspicious",
+        scenario_type="circular",
+        scenario_id="SCEN-04-FINANCIAL-ONLY",
+    )
     db.add_all([gt_c1, gt_c2, gt_c3])
 
     # -------------------------------------------------------------
@@ -346,10 +552,19 @@ def seed_demo_and_synthetic_dataset(
             channel="UPI",
             timestamp=base_date + timedelta(days=random.randint(1, 25), hours=random.randint(10, 18)),
             status="COMPLETED",
-            reference="MONTHLY_RENT"
+            reference="MONTHLY_RENT",
         )
         db.add(tx_rent)
-        db.add(GroundTruth(id=f"GT-HN-{hn_idx:02d}", entity_type="account", entity_id=src, label="legitimate", scenario_type="hard_negative_rent", scenario_id="SCEN-HARD-NEGATIVES"))
+        db.add(
+            GroundTruth(
+                id=f"GT-HN-{hn_idx:02d}",
+                entity_type="account",
+                entity_id=src,
+                label="legitimate",
+                scenario_type="hard_negative_rent",
+                scenario_id="SCEN-HARD-NEGATIVES",
+            )
+        )
 
     # Authorized night shift emergency access
     night_emp = employees[min(5, len(employees) - 1)]
@@ -360,7 +575,7 @@ def seed_demo_and_synthetic_dataset(
         action="VIEW",
         timestamp=base_date + timedelta(days=8, hours=2, minutes=15),
         device_id="DEV-005",
-        metadata_json={"authorized_exception": True, "ticket_id": "INC-88992"}
+        metadata_json={"authorized_exception": True, "ticket_id": "INC-88992"},
     )
     db.add(log_night)
 
@@ -369,41 +584,38 @@ def seed_demo_and_synthetic_dataset(
     # 8. BULK SYNTHETIC TRANSACTIONS & ACCESS LOGS
     # Generate realistic background transactions (up to num_transactions)
     # We will generate in batches for performance
-    special_acc_ids = {
-        "ACC-0231", "ACC-0442", "ACC-0553", "ACC-PAYROLL-01",
-        "ACC-8801", "ACC-8802", "ACC-8803"
-    }
+    special_acc_ids = {"ACC-0231", "ACC-0442", "ACC-0553", "ACC-PAYROLL-01", "ACC-8801", "ACC-8802", "ACC-8803"}
     background_acc_ids = [a.id for a in accounts if a.id not in special_acc_ids]
     if len(background_acc_ids) < 2:
         background_acc_ids = [a.id for a in accounts]
 
     tx_batch = []
     channels = ["UPI", "NEFT", "RTGS", "BRANCH", "INTERNAL"]
-    
+
     # Generate background normal transactions
     remaining_tx = max(num_transactions - 100, 500)
     for i in range(1, remaining_tx + 1):
         u, v = random.sample(background_acc_ids, 2)
         # Lognormal distribution for amounts: most transactions between 500 and 15,000
         amt = round(float(np.random.lognormal(mean=7.5, sigma=1.2)), 2)
-        amt = min(max(amt, 100.0), 45000.0) # normal retail amounts
+        amt = min(max(amt, 100.0), 45000.0)  # normal retail amounts
 
-        day_start = datetime(2026, 9, 1, 0, 0, 0, tzinfo=timezone.utc)
+        day_start = datetime(2026, 9, 1, 0, 0, 0, tzinfo=UTC)
         t_time = day_start + timedelta(
-            days=random.randint(0, 28),
-            hours=random.randint(8, 20),
-            minutes=random.randint(0, 59)
+            days=random.randint(0, 28), hours=random.randint(8, 20), minutes=random.randint(0, 59)
         )
-        tx_batch.append(Transaction(
-            id=f"TX-{i:06d}",
-            from_account_id=u,
-            to_account_id=v,
-            amount=amt,
-            currency="INR",
-            channel=random.choice(channels),
-            timestamp=t_time,
-            status="COMPLETED"
-        ))
+        tx_batch.append(
+            Transaction(
+                id=f"TX-{i:06d}",
+                from_account_id=u,
+                to_account_id=v,
+                amount=amt,
+                currency="INR",
+                channel=random.choice(channels),
+                timestamp=t_time,
+                status="COMPLETED",
+            )
+        )
         if len(tx_batch) >= 2000:
             db.bulk_save_objects(tx_batch)
             db.commit()
@@ -424,26 +636,19 @@ def seed_demo_and_synthetic_dataset(
         e_id = random.choice(emp_ids_background)
         a_id = random.choice(background_acc_ids)
         emp_obj = emp_by_id[e_id]
-        if str(emp_obj.normal_work_start) == "21:00":
+        if emp_obj.normal_work_start == "21:00":
             # overnight worker: between 22:00 and 05:00
             hour = random.choice([22, 23, 0, 1, 2, 3, 4, 5])
         else:
             # daytime worker: between 10:00 and 16:00
             hour = random.randint(10, 16)
 
-        l_time = base_date + timedelta(
-            days=random.randint(0, 28),
-            hours=hour,
-            minutes=random.randint(0, 59)
+        l_time = base_date + timedelta(days=random.randint(0, 28), hours=hour, minutes=random.randint(0, 59))
+        log_batch.append(
+            AccessLog(
+                id=f"LOG-{i:06d}", employee_id=e_id, account_id=a_id, action="VIEW", timestamp=l_time, branch_id="BR-01"
+            )
         )
-        log_batch.append(AccessLog(
-            id=f"LOG-{i:06d}",
-            employee_id=e_id,
-            account_id=a_id,
-            action="VIEW",
-            timestamp=l_time,
-            branch_id="BR-01"
-        ))
         if len(log_batch) >= 2000:
             db.bulk_save_objects(log_batch)
             db.commit()

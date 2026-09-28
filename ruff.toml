@@ -1,0 +1,29 @@
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "RUF"]
+ignore = ["E501"]
+allowed-confusables = ["σ"]
+
+[lint.per-file-ignores]
+"**/scripts/*" = ["E402"]
+"**/tests/*" = ["E402"]
+"**/alembic/*" = ["E402"]
+
+[lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    "fastapi.Query",
+    "fastapi.params.Query",
+    "fastapi.Path",
+    "fastapi.params.Path",
+    "fastapi.Body",
+    "fastapi.params.Body",
+    "fastapi.Header",
+    "fastapi.params.Header",
+    "fastapi.Security",
+    "fastapi.params.Security",
+    "app.api.deps.require_role",
+]
