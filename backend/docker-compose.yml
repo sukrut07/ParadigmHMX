@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: insidertrace-db
+    environment:
+      POSTGRES_USER: insidertrace
+      POSTGRES_PASSWORD: insidertrace_password
+      POSTGRES_DB: insidertrace
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U insidertrace -d insidertrace"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: insidertrace-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://insidertrace:insidertrace_password@db:5432/insidertrace
+      SECRET_KEY: production-secret-insidertrace-key-2026
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python scripts/generate_data.py --customers 500 --accounts 600 --transactions 5000 --events 2000 --seed 42 &&
+             python scripts/run_detection.py &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  postgres_data:

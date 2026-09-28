@@ -1,0 +1,57 @@
+# InsiderTrace Deterministic Risk Tiering Rules
+version: "1.0"
+
+tiers:
+  CRITICAL:
+    description: "High-level linked anomaly with insider involvement plus circular movement, multiple accounts, or repeated pattern"
+    conditions:
+      - id: "CRIT_INSIDER_LINK_CIRCULAR"
+        name: "Insider Action Linked to Circular Transfer Ring"
+        requires_insider_link: true
+        signal_types_any: ["CIRCULAR_TRANSFER"]
+        min_entities: 2
+      - id: "CRIT_INSIDER_MULTI_ACCOUNT"
+        name: "Insider Action Linked Across Multiple Accounts"
+        requires_insider_link: true
+        min_accounts: 2
+      - id: "CRIT_REPEATED_INSIDER_FINANCIAL"
+        name: "Repeated Linked Insider Financial Anomaly"
+        requires_insider_link: true
+        min_signals: 3
+
+  HIGH:
+    description: "Direct insider signal and financial signal linked by account, customer, device, or time proximity"
+    conditions:
+      - id: "HIGH_ACTION_TRANSACTION_LINK"
+        name: "Employee Action to Financial Transaction Link"
+        requires_insider_link: true
+      - id: "HIGH_SEVERE_STRUCTURING_RING"
+        name: "Severe Structuring with High Confidence"
+        signal_types_all: ["STRUCTURING"]
+        min_confidence: 0.85
+      - id: "HIGH_PRIVILEGE_OVERRIDE_ABUSE"
+        name: "Severe Privilege / Limit Override Abuse"
+        signal_types_all: ["PRIVILEGE_ABUSE"]
+        min_severity: "HIGH"
+
+  MEDIUM:
+    description: "Two independent financial signals or one strong financial anomaly or isolated insider anomaly"
+    conditions:
+      - id: "MED_MULTIPLE_FINANCIAL"
+        name: "Multiple Independent Financial Signals"
+        min_financial_signals: 2
+      - id: "MED_STRONG_FINANCIAL"
+        name: "Strong Financial Anomaly (Pass-through, Circular, Structuring)"
+        financial_signal_any: ["CIRCULAR_TRANSFER", "RAPID_PASSTHROUGH", "STRUCTURING"]
+        min_confidence: 0.70
+      - id: "MED_ISOLATED_INSIDER"
+        name: "High Severity Isolated Insider Activity without Financial Crime"
+        insider_signal_any: ["BULK_LOOKUP", "OUT_OF_ROLE_ACCESS", "PRIVILEGE_ABUSE"]
+        min_severity: "HIGH"
+
+  LOW:
+    description: "Single weak signal without cross-dimensional linkage"
+    conditions:
+      - id: "LOW_SINGLE_SIGNAL"
+        name: "Isolated Low/Medium Severity Signal"
+        max_signals: 1
