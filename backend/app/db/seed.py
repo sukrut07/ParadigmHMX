@@ -422,8 +422,6 @@ def seed_demo_and_synthetic_dataset(
 
     # Generate background normal employee access logs
     log_batch = []
-    emp_ids = [e.id for e in employees]
-<<<<<<< HEAD
     emp_ids_background = [e.id for e in employees if e.id not in ("EMP-017", "EMP-022")]
     if not emp_ids_background:
         emp_ids_background = emp_ids
@@ -438,17 +436,6 @@ def seed_demo_and_synthetic_dataset(
             hour = random.choice([22, 23, 0, 1, 2, 3, 4, 5])
         else:
             # daytime worker: between 10:00 and 16:00
-=======
-    emp_map = {e.id: e for e in employees}
-    remaining_logs = max(num_events - 100, 500)
-    for i in range(1, remaining_logs + 1):
-        e_id = random.choice(emp_ids)
-        a_id = random.choice(acc_ids)
-        emp_obj = emp_map[e_id]
-        if emp_obj.normal_work_start == "21:00":
-            hour = random.choice([22, 23, 0, 1, 2, 3, 4])
-        else:
->>>>>>> origin/main
             hour = random.randint(10, 16)
 
         l_time = base_date + timedelta(
