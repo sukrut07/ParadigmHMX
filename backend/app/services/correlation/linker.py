@@ -1,8 +1,7 @@
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any
 from collections import defaultdict
 import hashlib
 from sqlalchemy.orm import Session
-from app.models.signal import Signal
 from app.models.alert import Alert
 from app.utils.ids import generate_id
 from app.utils.time import utc_now

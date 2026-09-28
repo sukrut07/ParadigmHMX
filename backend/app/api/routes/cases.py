@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user, SecurityContext, require_role
 from app.models.case import Case
-from app.models.alert import Alert
 from app.models.audit import AuditLog
 from app.schemas.case import CaseCreate, CaseUpdate, CaseResponse
 from app.schemas.evidence import ExportResponse

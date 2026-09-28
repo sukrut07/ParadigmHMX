@@ -2,7 +2,6 @@ from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from sqlalchemy.orm import Session
 from app.config import settings
-from app.models.customer import Customer
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.services.detection.base import BaseDetector

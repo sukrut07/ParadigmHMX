@@ -1,4 +1,4 @@
-from app.utils.hashing import canonical_json_dump, calculate_sha256, canonical_hash_payload, verify_payload_hash
+from app.utils.hashing import canonical_json_dump, canonical_hash_payload, verify_payload_hash
 
 def test_canonical_json_key_order_independence():
     dict1 = {"b": 2, "a": 1, "nested": {"y": 20, "x": 10}}

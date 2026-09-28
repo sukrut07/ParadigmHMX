@@ -1,21 +1,18 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import numpy as np
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.api.deps import get_db, get_current_user, SecurityContext
 from app.models.alert import Alert
 from app.models.case import Case
 from app.models.signal import Signal
 from app.models.employee import Employee
-from app.models.account import Account
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
 from app.models.audit import AuditLog
-from app.models.transaction import Transaction
 from app.services.evaluation.metrics import EvaluationEngine
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -35,9 +32,9 @@ def get_fraud_dashboard(
     signals = db.query(Signal).all()
 
     # Tier counts
-    tier_counts = defaultdict(int)
+    tier_counts: dict[str, int] = defaultdict(int)
     for a in alerts:
-        tier_counts[a.tier] += 1
+        tier_counts[str(a.tier)] += 1
 
     open_cases_count = sum(1 for c in cases if c.status in ("OPEN", "IN_REVIEW", "ESCALATED"))
     
@@ -89,7 +86,7 @@ def get_fraud_dashboard(
             "summary": a.summary,
             "employee_id": primary_emp,
             "account_id": primary_acc,
-            "signal_count": len(a.signal_ids),
+            "signal_count": len(a.signal_ids) if isinstance(a.signal_ids, (list, tuple)) else 0,
             "status": a.status,
             "created_at": a.created_at.isoformat() if a.created_at else None
         })
@@ -241,7 +238,7 @@ def get_audit_dashboard(
     # Sort employee table by risk priority
     risk_rank = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
     employee_table.sort(key=lambda r: (risk_rank.get(r["risk"], 4), -r["access_count"]))
-    top_deviations.sort(key=lambda r: -float(r["deviation_sigma"].replace("+", "").replace("σ", "")))
+    top_deviations.sort(key=lambda r: -float(str(r["deviation_sigma"]).replace("+", "").replace("σ", "")))
 
     # Branch risk aggregation
     branch_risk = {
@@ -366,10 +363,12 @@ def get_alert_trend(
     alerts = db.query(Alert).order_by(Alert.created_at.asc()).all()
     
     # Bucket by date
-    buckets = defaultdict(lambda: {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0})
+    buckets: dict[str, dict[str, int]] = defaultdict(lambda: {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0})
     for a in alerts:
         d_str = a.created_at.strftime("%b %d") if a.created_at else "Sep 20"
-        buckets[d_str][a.tier] += 1
+        tier_key = str(a.tier)
+        if tier_key in buckets[d_str]:
+            buckets[d_str][tier_key] += 1
 
     trend = []
     for d_str, counts in buckets.items():

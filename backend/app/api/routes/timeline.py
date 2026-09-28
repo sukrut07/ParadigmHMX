@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user, SecurityContext
-from app.schemas.timeline import TimelineResponse
+from app.schemas.timeline import TimelineResponse, TimelineEvent
 from app.services.timeline.builder import TimelineBuilder
 
 router = APIRouter(prefix="/timeline", tags=["Timeline"])
@@ -18,4 +18,4 @@ def get_timeline(
 ):
     focus = {entity_id} if entity_id else None
     events = timeline_builder.build_timeline(db, entity_ids=focus, limit=limit)
-    return TimelineResponse(events=events, total_events=len(events))
+    return TimelineResponse(events=[TimelineEvent(**e) for e in events], total_events=len(events))

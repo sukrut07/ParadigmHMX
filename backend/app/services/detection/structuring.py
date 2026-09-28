@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from sqlalchemy.orm import Session
@@ -65,7 +64,6 @@ class StructuringDetector(BaseDetector):
                 if len(window_txs) < min_tx_count:
                     continue
 
-                total_amount = sum(t.amount for t in window_txs)
                 # Check structuring pattern:
                 # 1. Total split amount exceeds the reporting threshold (e.g., total >= threshold * 1.2)
                 # 2. Individual transaction amounts are deliberately sized just below threshold (0.60 * threshold to 0.99 * threshold)

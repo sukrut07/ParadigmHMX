@@ -2,7 +2,6 @@ from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from sqlalchemy.orm import Session
 from app.config import settings
-from app.models.employee import Employee
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
 from app.services.detection.base import BaseDetector

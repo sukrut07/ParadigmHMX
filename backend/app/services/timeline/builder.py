@@ -17,7 +17,7 @@ class TimelineBuilder:
         """
         Merges AccessLogs, AccountChanges, and Transactions into a unified chronological event stream.
         """
-        events = []
+        events: list[dict[str, Any]] = []
 
         # 1. Fetch AccessLogs
         q_logs = db.query(AccessLog)
@@ -91,5 +91,5 @@ class TimelineBuilder:
             })
 
         # Sort chronologically
-        events.sort(key=lambda x: x["timestamp"])
+        events.sort(key=lambda x: str(x["timestamp"]))
         return events[:limit]

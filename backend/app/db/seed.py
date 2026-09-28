@@ -230,7 +230,7 @@ def seed_demo_and_synthetic_dataset(
     db.add_all([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
     accounts.extend([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
 
-    reserved_acc_ids = {a.id for a in accounts}
+    reserved_acc_ids: set[str] = {str(a.id) for a in accounts}
     counter = 1
     while len(accounts) < num_accounts:
         candidate_id = f"ACC-{counter:04d}"

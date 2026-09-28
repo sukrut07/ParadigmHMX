@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 import random
 from datetime import timedelta
 from sqlalchemy.orm import Session
@@ -35,7 +35,6 @@ class RedTeamSimulator:
         now = utc_now()
 
         generated_counts = {"customers": 0, "accounts": 0, "transactions": 0, "logs": 0, "changes": 0}
-        generated_summary = []
         expected_behavior = ""
 
         # Fetch or ensure at least one test employee and role

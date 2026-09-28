@@ -1,11 +1,7 @@
-import sys
+import runpy
 from pathlib import Path
 
-# Add backend directory to sys.path
-backend_dir = Path(__file__).resolve().parent.parent / "backend"
-sys.path.insert(0, str(backend_dir))
-
-from scripts.generate_data import main
-
 if __name__ == "__main__":
-    main()
+    script_path = Path(__file__).resolve().parent.parent / "backend" / "scripts" / "generate_data.py"
+    runpy.run_path(str(script_path), run_name="__main__")
+

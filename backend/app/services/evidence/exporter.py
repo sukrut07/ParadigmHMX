@@ -2,7 +2,6 @@ import io
 from typing import Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from app.models.case import Case
-from app.models.alert import Alert
 from app.models.signal import Signal
 from app.models.audit import AuditLog
 from app.utils.time import utc_now
@@ -114,7 +113,7 @@ class EvidenceExporter:
         doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
         styles = getSampleStyleSheet()
 
-        elements = []
+        elements: list[Any] = []
 
         # Title
         title_style = ParagraphStyle(

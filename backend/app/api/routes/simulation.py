@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, get_current_user, SecurityContext, require_role
+from app.api.deps import get_db, SecurityContext, require_role
 from app.schemas.simulation import SimulationRequest, SimulationResponse
 from app.services.simulation.red_team import RedTeamSimulator
 

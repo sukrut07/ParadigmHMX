@@ -1,10 +1,8 @@
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, Optional, Set
 import networkx as nx
 from sqlalchemy.orm import Session
-from app.models.customer import Customer
 from app.models.account import Account
 from app.models.employee import Employee
-from app.models.device import Device
 from app.models.transaction import Transaction
 from app.models.access_log import AccessLog
 from app.models.account_change import AccountChange
@@ -139,23 +137,25 @@ class GraphBuilder:
         nodes_out = []
         for n, data in H.nodes(data=True):
             is_suspicious = bool(focus_entity_ids and n in focus_entity_ids)
+            n_data: dict[str, Any] = data if isinstance(data, dict) else {}
             nodes_out.append({
                 "id": str(n),
-                "label": data.get("label", str(n)),
-                "type": data.get("type", "UNKNOWN"),
-                "properties": data.get("properties", {}),
+                "label": n_data.get("label", str(n)),
+                "type": n_data.get("type", "UNKNOWN"),
+                "properties": n_data.get("properties", {}),
                 "is_suspicious": is_suspicious
             })
 
         edges_out = []
         for u, v, k, data in H.edges(keys=True, data=True):
             is_hl = bool(focus_entity_ids and (u in focus_entity_ids or v in focus_entity_ids))
+            e_data: dict[str, Any] = data if isinstance(data, dict) else {}
             edges_out.append({
                 "source": str(u),
                 "target": str(v),
-                "type": data.get("type", "RELATION"),
-                "label": data.get("label", ""),
-                "properties": data.get("properties", {}),
+                "type": e_data.get("type", "RELATION"),
+                "label": e_data.get("label", ""),
+                "properties": e_data.get("properties", {}),
                 "is_highlighted": is_hl
             })
 

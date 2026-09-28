@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Any
 from sqlalchemy.orm import Session
 from app.models.case import Case
 from app.models.alert import Alert
@@ -81,7 +81,7 @@ class CaseService:
         if not case:
             raise ValueError(f"Case '{case_id}' does not exist.")
 
-        audit_actions = []
+        audit_actions: list[tuple[str, dict[str, Any]]] = []
 
         if assignee_id and assignee_id != case.assignee_id:
             case.assignee_id = assignee_id
@@ -92,7 +92,8 @@ class CaseService:
             audit_actions.append(("CHANGE_PRIORITY", {"new_priority": priority}))
 
         if note:
-            case_notes = list(case.notes or [])
+            raw_notes = case.notes
+            case_notes = list(raw_notes) if isinstance(raw_notes, list) else []
             case_notes.append({
                 "author": actor,
                 "text": note,

@@ -83,5 +83,5 @@ class CounterfactualEngine:
             "condition_changed": "Transaction amounts and access logs match baseline parameters",
             "original_tier": original_tier,
             "counterfactual_tier": "LOW",
-            "explanation": f"In the absence of anomalous indicators, this case would be classified as LOW risk."
+            "explanation": "In the absence of anomalous indicators, this case would be classified as LOW risk."
         }

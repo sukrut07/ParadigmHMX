@@ -7,8 +7,9 @@ from app.models.alert import Alert
 from app.models.signal import Signal
 from app.models.audit import AuditLog
 from app.schemas.alert import AlertListItem, AlertDetailResponse
+from app.schemas.signal import SignalResponse
 from app.schemas.graph import GraphResponse
-from app.schemas.timeline import TimelineResponse
+from app.schemas.timeline import TimelineResponse, TimelineEvent
 from app.services.graph.builder import GraphBuilder
 from app.services.timeline.builder import TimelineBuilder
 from app.utils.ids import generate_id
@@ -134,7 +135,7 @@ def get_alert_detail(
         counterfactual=alert.counterfactual,
         graph_snapshot=alert.graph_snapshot,
         timeline_snapshot=alert.timeline_snapshot,
-        signals=signals_data,
+        signals=[SignalResponse(**s) for s in signals_data],
         status=alert.status,
         created_at=alert.created_at,
         updated_at=alert.updated_at
@@ -172,4 +173,4 @@ def get_alert_timeline(
         raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found.")
 
     events = timeline_builder.build_timeline(db, entity_ids=set(alert.entity_ids), limit=limit)
-    return TimelineResponse(events=events, total_events=len(events))
+    return TimelineResponse(events=[TimelineEvent(**e) for e in events], total_events=len(events))

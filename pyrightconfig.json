@@ -3,11 +3,5 @@
   "venv": ".venv",
   "extraPaths": [
     "backend"
-  ],
-  "reportGeneralTypeIssues": "none",
-  "reportOptionalMemberAccess": "none",
-  "reportArgumentType": "none",
-  "reportAttributeAccessIssue": "none",
-  "reportCallIssue": "none",
-  "reportOptionalSubscript": "none"
+  ]
 }

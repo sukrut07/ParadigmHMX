@@ -1,10 +1,7 @@
-import sys
+import runpy
 from pathlib import Path
 
-backend_dir = Path(__file__).resolve().parent.parent / "backend"
-sys.path.insert(0, str(backend_dir))
-
-from scripts.run_detection import main
-
 if __name__ == "__main__":
-    main()
+    script_path = Path(__file__).resolve().parent.parent / "backend" / "scripts" / "run_detection.py"
+    runpy.run_path(str(script_path), run_name="__main__")
+

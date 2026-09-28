@@ -1,4 +1,3 @@
-from datetime import timedelta
 from typing import List, Dict, Any, Optional
 import networkx as nx
 from sqlalchemy.orm import Session
@@ -65,7 +64,7 @@ class CircularTransferDetector(BaseDetector):
             if account_id and account_id not in cycle:
                 continue
 
-            cycle_key = tuple(sorted(cycle))
+            cycle_key = tuple(sorted(str(n) for n in cycle))
             if cycle_key in visited_cycles:
                 continue
             visited_cycles.add(cycle_key)
@@ -91,8 +90,8 @@ class CircularTransferDetector(BaseDetector):
 
             # Formulate evidence and signal
             evidence = []
-            entities = [{"type": "account", "id": acc} for acc in cycle]
-            cycle_path_str = " → ".join(cycle) + f" → {cycle[0]}"
+            entities: list[dict[str, str]] = [{"type": "account", "id": str(acc)} for acc in cycle]
+            cycle_path_str = " → ".join(str(n) for n in cycle) + f" → {cycle[0]}"
             
             for tx in valid_chain:
                 evidence.append({

@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Set
+from typing import Dict, Any, List
 from collections import defaultdict
 from sqlalchemy.orm import Session
 from app.models.ground_truth import GroundTruth

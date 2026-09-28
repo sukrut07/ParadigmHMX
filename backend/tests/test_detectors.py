@@ -1,4 +1,3 @@
-import pytest
 from app.services.detection.circular_transfer import CircularTransferDetector
 from app.services.detection.structuring import StructuringDetector
 from app.services.detection.rapid_passthrough import RapidPassThroughDetector

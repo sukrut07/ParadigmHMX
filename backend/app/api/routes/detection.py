@@ -1,7 +1,7 @@
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
-from app.api.deps import get_db, get_current_user, SecurityContext, require_role
+from app.api.deps import get_db, SecurityContext, require_role
 from app.services.detection.engine import DetectionEngine
 from app.services.correlation.linker import CorrelationLinker
 from app.utils.ids import generate_id

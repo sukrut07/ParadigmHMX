@@ -3,7 +3,6 @@ from collections import defaultdict
 import numpy as np
 from sqlalchemy.orm import Session
 from app.config import settings
-from app.models.employee import Employee
 from app.models.access_log import AccessLog
 from app.services.detection.base import BaseDetector
 

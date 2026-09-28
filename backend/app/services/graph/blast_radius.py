@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 from collections import defaultdict
 from sqlalchemy.orm import Session
 from app.models.employee import Employee
@@ -26,8 +26,8 @@ class BlastRadiusAnalyzer:
         logs = db.query(AccessLog).filter(AccessLog.employee_id == employee_id).all()
         changes = db.query(AccountChange).filter(AccountChange.employee_id == employee_id).all()
 
-        accounts_touched = set()
-        devices_used = set()
+        accounts_touched: set[str] = set()
+        devices_used: set[str] = set()
         actions_performed = defaultdict(int)
 
         for l in logs:
@@ -67,7 +67,7 @@ class BlastRadiusAnalyzer:
                 })
 
         # 4. Alerts involving employee or touched accounts
-        all_touchpoints = set(accounts_touched)
+        all_touchpoints: set[str] = set(accounts_touched)
         all_touchpoints.add(employee_id)
         
         alerts_involved = []
@@ -77,14 +77,16 @@ class BlastRadiusAnalyzer:
 
         all_alerts = db.query(Alert).all()
         for al in all_alerts:
-            overlap = set(al.entity_ids).intersection(all_touchpoints)
+            ent_list = [str(x) for x in (al.entity_ids or [])]
+            overlap = set(ent_list).intersection(all_touchpoints)
             if overlap:
-                alerts_involved.append(al.id)
+                alerts_involved.append(str(al.id))
                 for ent in overlap:
                     if ent.startswith("ACC-"):
                         suspicious_accounts.add(ent)
-                if severity_rank.get(al.tier, 0) > severity_rank.get(highest_severity, 0):
-                    highest_severity = al.tier
+                tier_str = str(al.tier)
+                if severity_rank.get(tier_str, 0) > severity_rank.get(highest_severity, 0):
+                    highest_severity = tier_str
 
         # 5. Timeline
         timeline_events = self.timeline_builder.build_timeline(

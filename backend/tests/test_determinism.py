@@ -6,7 +6,7 @@ from app.services.detection.engine import DetectionEngine
 from app.services.correlation.linker import CorrelationLinker
 
 def run_pipeline_with_seed(seed: int):
-    eng = create_engine(f"sqlite:///:memory:", connect_args={"check_same_thread": False})
+    eng = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     Base.metadata.create_all(bind=eng)
     Session = sessionmaker(bind=eng)
     session = Session()
@@ -30,7 +30,6 @@ def run_pipeline_with_seed(seed: int):
     # Extract signature of alerts
     alert_signatures = []
     for a in alerts:
-        sig_types = sorted(a.rule_trace.get("rules", [{}])[0].get("signals", []))
         alert_signatures.append({
             "tier": a.tier,
             "title": a.title,
@@ -38,7 +37,7 @@ def run_pipeline_with_seed(seed: int):
             "signal_count": len(a.signal_ids),
             "rule_names": [r["rule"] for r in a.rule_trace.get("rules", [])]
         })
-    alert_signatures.sort(key=lambda x: (x["tier"], x["title"], ",".join(x["entity_ids"])))
+    alert_signatures.sort(key=lambda x: (str(x["tier"]), str(x["title"]), ",".join(str(e) for e in x["entity_ids"])))
 
     session.close()
     return alert_signatures
