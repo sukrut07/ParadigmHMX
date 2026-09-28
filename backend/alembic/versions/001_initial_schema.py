@@ -15,8 +15,13 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
-    # Schema creation handled by Base.metadata.create_all for SQLite/Postgres compatibility
-    pass
+    bind = op.get_bind()
+    from app.db.session import Base
+    import app.models  # ensure models are imported
+    Base.metadata.create_all(bind=bind)
 
 def downgrade() -> None:
-    pass
+    bind = op.get_bind()
+    from app.db.session import Base
+    import app.models
+    Base.metadata.drop_all(bind=bind)

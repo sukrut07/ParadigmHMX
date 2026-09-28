@@ -1,10 +1,13 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -17,14 +20,28 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# SQLite databases journal
+*.db-journal
+*.sqlite3
+
+# Pytest / coverage
 .pytest_cache/
 .coverage
 htmlcov/
-*.sqlite3
-*.db-journal
 
 # Node / Vite
 node_modules/
@@ -35,9 +52,12 @@ frontend/dist-ssr/
 .eslintcache
 .stylelintcache
 
-# Antigravity & IDE
+# IDE / Editor
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# OS
 .DS_Store
+Thumbs.db

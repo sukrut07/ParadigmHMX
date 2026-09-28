@@ -7,11 +7,11 @@ from app.models.audit import AuditLog
 from app.utils.ids import generate_id
 from app.utils.time import utc_now
 
-router = APIRouter(prefix="/evidence", tags=["Evidence"])
+router = APIRouter(tags=["Evidence & Export"])
 
 exporter = EvidenceExporter()
 
-@router.get("")
+@router.get("/evidence")
 def list_evidence_packages(
     db: Session = Depends(get_db),
     user: SecurityContext = Depends(get_current_user)
@@ -69,7 +69,9 @@ def list_evidence_packages(
         ]
     }
 
-@router.post("/verify", response_model=VerificationResponse)
+@router.post("/evidence/verify", response_model=VerificationResponse)
+@router.post("/export/verify", response_model=VerificationResponse)
+
 def verify_evidence_bundle(
     payload: VerificationRequest,
     db: Session = Depends(get_db),

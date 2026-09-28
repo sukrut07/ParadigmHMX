@@ -20,6 +20,11 @@ class CircularTransferDetector(BaseDetector):
         query = db.query(Transaction).filter(Transaction.status == "COMPLETED")
         if transaction_id:
             query = query.filter(Transaction.id == transaction_id)
+        elif account_id:
+            query = query.filter((Transaction.from_account_id == account_id) | (Transaction.to_account_id == account_id))
+        else:
+            # Laundering rings circulate substantial amounts; filters retail noise
+            query = query.filter(Transaction.amount >= 15000.0)
         
         transactions = query.order_by(Transaction.timestamp.asc()).all()
         if not transactions:
@@ -125,25 +130,27 @@ class CircularTransferDetector(BaseDetector):
         return signals
 
     def _find_chronological_chain(self, edges, tx_by_edge, max_hours):
-        """Finds if there exists a valid sequence of transactions along edges within max_hours window."""
-        # Simple search for a valid chronological sequence
-        first_edge_txs = tx_by_edge.get(edges[0], [])
-        for t0 in first_edge_txs:
-            chain = [t0]
-            curr_time = t0.timestamp
-            possible = True
-            for next_edge in edges[1:]:
-                candidates = [
-                    t for t in tx_by_edge.get(next_edge, [])
-                    if t.timestamp >= curr_time and (t.timestamp - t0.timestamp).total_seconds() <= max_hours * 3600
-                ]
-                if not candidates:
-                    possible = False
-                    break
-                # choose the earliest valid candidate
-                chosen = min(candidates, key=lambda x: x.timestamp)
-                chain.append(chosen)
-                curr_time = chosen.timestamp
-            if possible and len(chain) == len(edges):
-                return chain
+        """Finds if there exists a valid sequence of transactions along any cyclic rotation of edges within max_hours."""
+        k = len(edges)
+        rotations = [edges[r:] + edges[:r] for r in range(k)]
+
+        for rot_edges in rotations:
+            first_edge_txs = tx_by_edge.get(rot_edges[0], [])
+            for t0 in first_edge_txs:
+                chain = [t0]
+                curr_time = t0.timestamp
+                possible = True
+                for next_edge in rot_edges[1:]:
+                    candidates = [
+                        t for t in tx_by_edge.get(next_edge, [])
+                        if t.timestamp >= curr_time and (t.timestamp - t0.timestamp).total_seconds() <= max_hours * 3600
+                    ]
+                    if not candidates:
+                        possible = False
+                        break
+                    chosen = min(candidates, key=lambda x: x.timestamp)
+                    chain.append(chosen)
+                    curr_time = chosen.timestamp
+                if possible and len(chain) == len(rot_edges):
+                    return chain
         return None

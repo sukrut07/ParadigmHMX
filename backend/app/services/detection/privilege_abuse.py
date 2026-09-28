@@ -88,9 +88,9 @@ class PrivilegeAbuseDetector(BaseDetector):
                             }
                         })
 
-                    entities = [
-                        {"type": "employee", "id": emp_id}
-                    ] + [{"type": "account", "id": acc} for acc in target_accounts]
+                    entities = [{"type": "employee", "id": emp_id}]
+                    if len(target_accounts) == 1:
+                        entities.append({"type": "account", "id": target_accounts[0]})
 
                     time_span_h = (window[-1]["timestamp"] - window[0]["timestamp"]).total_seconds() / 3600.0
                     explanation = (

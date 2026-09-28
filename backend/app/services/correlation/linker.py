@@ -172,9 +172,17 @@ class CorrelationLinker:
             dedup_string = f"{','.join(sorted(signal_ids))}:{','.join(sorted(linked_entities_list))}"
             dedup_hash = hashlib.sha256(dedup_string.encode("utf-8")).hexdigest()
 
-            # Check if alert with same dedup_hash exists
             existing_alert = db.query(Alert).filter(Alert.dedup_hash == dedup_hash).first()
             if existing_alert:
+                existing_alert.tier = tier
+                existing_alert.title = title
+                existing_alert.summary = summary
+                existing_alert.rule_trace = rule_trace
+                existing_alert.counterfactual = counterfactual
+                existing_alert.evidence = merged_evidence
+                existing_alert.evidence_record_ids = sorted(list(merged_record_ids))
+                existing_alert.graph_snapshot = graph_snapshot
+                existing_alert.timeline_snapshot = timeline_snapshot
                 alerts_created.append(existing_alert)
                 continue
 

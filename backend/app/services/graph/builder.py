@@ -17,144 +17,122 @@ class GraphBuilder:
         self,
         db: Session,
         focus_entity_ids: Optional[Set[str]] = None,
-        max_depth: int = 2
+        max_depth: int = 1
     ) -> Dict[str, Any]:
         """
         Builds a NetworkX graph of entities and interactions.
-        If focus_entity_ids is provided, extracts the relevant ego-subgraph.
-        Returns frontend-ready nodes and edges dict.
+        If focus_entity_ids is provided, constructs a focused case subgraph.
         """
         G = nx.MultiDiGraph()
 
-        # 1. Fetch relevant or all entities
-        accounts = db.query(Account).all()
-        for acc in accounts:
-            G.add_node(
-                acc.id,
-                label=f"Account {acc.id}",
-                type="ACCOUNT",
-                properties={
-                    "account_type": acc.account_type,
-                    "branch_id": acc.branch_id,
-                    "status": acc.status,
-                    "daily_limit": acc.daily_limit
-                }
-            )
-            # Link Account to Customer (OWNS)
-            if acc.customer_id:
-                cust_node = acc.customer_id
-                if not G.has_node(cust_node):
-                    cust = db.query(Customer).filter(Customer.id == cust_node).first()
-                    G.add_node(
-                        cust_node,
-                        label=f"Customer {cust_node}",
-                        type="CUSTOMER",
-                        properties={
-                            "occupation": cust.declared_occupation if cust else "Unknown",
-                            "risk_profile": cust.risk_profile if cust else "LOW"
-                        }
-                    )
-                G.add_edge(cust_node, acc.id, type="OWNS", label="OWNS", properties={})
+        if focus_entity_ids:
+            # 1. Focused Case Subgraph Query
+            focus_ids_list = list(focus_entity_ids)
+            accounts = db.query(Account).filter(Account.id.in_(focus_ids_list)).all()
+            for acc in accounts:
+                G.add_node(
+                    acc.id,
+                    label=f"Account {acc.id}",
+                    type="ACCOUNT",
+                    properties={"status": acc.status, "daily_limit": acc.daily_limit, "account_type": acc.account_type}
+                )
+                if acc.customer_id:
+                    if not G.has_node(acc.customer_id):
+                        G.add_node(acc.customer_id, label=f"Customer {acc.customer_id}", type="CUSTOMER", properties={})
+                    G.add_edge(acc.customer_id, acc.id, type="OWNS", label="OWNS", properties={})
 
-        employees = db.query(Employee).all()
-        for emp in employees:
-            G.add_node(
-                emp.id,
-                label=f"Employee {emp.id}",
-                type="EMPLOYEE",
-                properties={
-                    "role_id": emp.role_id,
-                    "branch_id": emp.branch_id,
-                    "status": emp.status
-                }
-            )
-
-        devices = db.query(Device).all()
-        for dev in devices:
-            G.add_node(
-                dev.id,
-                label=f"Device {dev.id}",
-                type="DEVICE",
-                properties={
-                    "device_type": dev.device_type,
-                    "branch_id": dev.branch_id
-                }
-            )
-
-        # 2. Add Transactions (TRANSFER edges)
-        transactions = db.query(Transaction).filter(Transaction.status == "COMPLETED").all()
-        for tx in transactions:
-            G.add_edge(
-                tx.from_account_id,
-                tx.to_account_id,
-                type="TRANSFER",
-                label=f"₹{tx.amount:,.0f}",
-                properties={
-                    "transaction_id": tx.id,
-                    "amount": tx.amount,
-                    "timestamp": tx.timestamp.isoformat(),
-                    "channel": tx.channel
-                }
-            )
-
-        # 3. Add AccessLogs (ACCESSED edges)
-        access_logs = db.query(AccessLog).all()
-        for log in access_logs:
-            G.add_edge(
-                log.employee_id,
-                log.account_id,
-                type="ACCESSED",
-                label=log.action,
-                properties={
-                    "log_id": log.id,
-                    "action": log.action,
-                    "timestamp": log.timestamp.isoformat(),
-                    "device_id": log.device_id
-                }
-            )
-            if log.device_id and G.has_node(log.device_id):
-                G.add_edge(
-                    log.employee_id,
-                    log.device_id,
-                    type="USED_DEVICE",
-                    label="USED",
-                    properties={"timestamp": log.timestamp.isoformat()}
+            employees = db.query(Employee).filter(Employee.id.in_(focus_ids_list)).all()
+            for emp in employees:
+                G.add_node(
+                    emp.id,
+                    label=f"Employee {emp.id}",
+                    type="EMPLOYEE",
+                    properties={"role_id": emp.role_id, "branch_id": emp.branch_id}
                 )
 
-        # 4. Add AccountChanges (EDITED edges)
-        changes = db.query(AccountChange).all()
-        for chg in changes:
-            G.add_edge(
-                chg.employee_id,
-                chg.account_id,
-                type="EDITED",
-                label=f"EDIT {chg.field}",
-                properties={
-                    "change_id": chg.id,
-                    "field": chg.field,
-                    "timestamp": chg.timestamp.isoformat()
-                }
-            )
+            # Connected transactions
+            txs = db.query(Transaction).filter(
+                (Transaction.from_account_id.in_(focus_ids_list)) | (Transaction.to_account_id.in_(focus_ids_list)),
+                Transaction.status == "COMPLETED"
+            ).order_by(Transaction.timestamp.desc()).limit(40).all()
 
-        # Subgraph extraction if focus entities specified
-        if focus_entity_ids:
-            sub_nodes = set()
-            for fid in focus_entity_ids:
-                if G.has_node(fid):
-                    sub_nodes.add(fid)
-                    # Get neighbors up to max_depth
-                    current_level = {fid}
-                    for _ in range(max_depth):
-                        next_level = set()
-                        for n in current_level:
-                            next_level.update(G.neighbors(n))
-                            if hasattr(G, "predecessors"):
-                                next_level.update(G.predecessors(n))
-                        sub_nodes.update(next_level)
-                        current_level = next_level
+            for tx in txs:
+                if not G.has_node(tx.from_account_id):
+                    G.add_node(tx.from_account_id, label=f"Account {tx.from_account_id}", type="ACCOUNT", properties={})
+                if not G.has_node(tx.to_account_id):
+                    G.add_node(tx.to_account_id, label=f"Account {tx.to_account_id}", type="ACCOUNT", properties={})
+                G.add_edge(
+                    tx.from_account_id,
+                    tx.to_account_id,
+                    type="TRANSFER",
+                    label=f"₹{tx.amount:,.0f}",
+                    properties={"transaction_id": tx.id, "amount": tx.amount, "timestamp": tx.timestamp.isoformat(), "channel": tx.channel}
+                )
 
-            H = G.subgraph(sub_nodes).copy()
+            # Connected access logs
+            logs = db.query(AccessLog).filter(
+                (AccessLog.employee_id.in_(focus_ids_list)) | (AccessLog.account_id.in_(focus_ids_list))
+            ).order_by(AccessLog.timestamp.desc()).limit(30).all()
+
+            for log in logs:
+                if not G.has_node(log.employee_id):
+                    G.add_node(log.employee_id, label=f"Employee {log.employee_id}", type="EMPLOYEE", properties={})
+                if not G.has_node(log.account_id):
+                    G.add_node(log.account_id, label=f"Account {log.account_id}", type="ACCOUNT", properties={})
+                G.add_edge(
+                    log.employee_id,
+                    log.account_id,
+                    type="ACCESSED",
+                    label=log.action,
+                    properties={"log_id": log.id, "action": log.action, "timestamp": log.timestamp.isoformat()}
+                )
+
+            # Connected account changes
+            changes = db.query(AccountChange).filter(
+                (AccountChange.employee_id.in_(focus_ids_list)) | (AccountChange.account_id.in_(focus_ids_list))
+            ).order_by(AccountChange.timestamp.desc()).limit(20).all()
+
+            for chg in changes:
+                if not G.has_node(chg.employee_id):
+                    G.add_node(chg.employee_id, label=f"Employee {chg.employee_id}", type="EMPLOYEE", properties={})
+                if not G.has_node(chg.account_id):
+                    G.add_node(chg.account_id, label=f"Account {chg.account_id}", type="ACCOUNT", properties={})
+                G.add_edge(
+                    chg.employee_id,
+                    chg.account_id,
+                    type="EDITED",
+                    label=f"EDIT {chg.field}",
+                    properties={"change_id": chg.id, "field": chg.field, "timestamp": chg.timestamp.isoformat()}
+                )
+
+            H = G
         else:
+            # 2. Global Graph Query
+            accounts = db.query(Account).limit(150).all()
+            for acc in accounts:
+                G.add_node(acc.id, label=f"Account {acc.id}", type="ACCOUNT", properties={"status": acc.status, "account_type": acc.account_type})
+                if acc.customer_id:
+                    if not G.has_node(acc.customer_id):
+                        G.add_node(acc.customer_id, label=f"Customer {acc.customer_id}", type="CUSTOMER", properties={})
+                    G.add_edge(acc.customer_id, acc.id, type="OWNS", label="OWNS", properties={})
+
+            employees = db.query(Employee).all()
+            for emp in employees:
+                G.add_node(emp.id, label=f"Employee {emp.id}", type="EMPLOYEE", properties={"role_id": emp.role_id, "branch_id": emp.branch_id})
+
+            txs = db.query(Transaction).filter(Transaction.status == "COMPLETED").order_by(Transaction.timestamp.desc()).limit(200).all()
+            for tx in txs:
+                if not G.has_node(tx.from_account_id):
+                    G.add_node(tx.from_account_id, label=f"Account {tx.from_account_id}", type="ACCOUNT", properties={})
+                if not G.has_node(tx.to_account_id):
+                    G.add_node(tx.to_account_id, label=f"Account {tx.to_account_id}", type="ACCOUNT", properties={})
+                G.add_edge(
+                    tx.from_account_id,
+                    tx.to_account_id,
+                    type="TRANSFER",
+                    label=f"₹{tx.amount:,.0f}",
+                    properties={"transaction_id": tx.id, "amount": tx.amount, "timestamp": tx.timestamp.isoformat()}
+                )
             H = G
 
         # Convert to serialized JSON response
