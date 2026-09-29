@@ -2,17 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
-  Filter,
   Search,
   RefreshCw,
   ExternalLink,
-  ShieldAlert,
-  Flame,
   FileCheck2,
-  Sliders,
   ChevronRight,
-  Maximize2,
-  Minimize2
+  Circle,
 } from 'lucide-react';
 import { getAlerts, getAlertDetail } from '../services/api';
 import { AlertListItem, AlertDetail, RiskTier } from '../types';
@@ -30,7 +25,6 @@ export const AlertsPage: React.FC = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters from URL search params
   const tierFilter = searchParams.get('tier') || '';
   const statusFilter = searchParams.get('status') || '';
   const signalFilter = searchParams.get('signal_type') || '';
@@ -40,13 +34,8 @@ export const AlertsPage: React.FC = () => {
     try {
       setLoadingList(true);
       setError(null);
-      const res = await getAlerts({
-        tier: tierFilter || undefined,
-        status: statusFilter || undefined,
-      });
+      const res = await getAlerts({ tier: tierFilter || undefined, status: statusFilter || undefined });
       setAlerts(res);
-
-      // Auto-select priority alert if none selected or current selection is not in list
       if (res.length > 0) {
         const currentSelected = selectedAlertId ? res.find((a) => a.id === selectedAlertId) : null;
         const toSelect = currentSelected || res.find((a) => a.tier === 'CRITICAL') || res[0];
@@ -69,15 +58,13 @@ export const AlertsPage: React.FC = () => {
       const detail = await getAlertDetail(alertId);
       setSelectedAlertDetail(detail);
     } catch (err: any) {
-      console.error('Failed to load alert detail for side panel:', err);
+      console.error('Failed to load alert detail:', err);
     } finally {
       setLoadingDetail(false);
     }
   };
 
-  useEffect(() => {
-    loadAlerts();
-  }, [tierFilter, statusFilter, signalFilter]);
+  useEffect(() => { loadAlerts(); }, [tierFilter, statusFilter, signalFilter]);
 
   const handleSelectAlert = (alertId: string) => {
     setSelectedAlertId(alertId);
@@ -86,95 +73,97 @@ export const AlertsPage: React.FC = () => {
 
   const updateFilter = (key: string, val: string) => {
     const next = new URLSearchParams(searchParams);
-    if (val) {
-      next.set(key, val);
-    } else {
-      next.delete(key);
-    }
+    if (val) next.set(key, val); else next.delete(key);
     setSearchParams(next);
   };
 
   const filteredAlerts = alerts.filter((a) => {
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
-      const match =
-        a.id.toLowerCase().includes(q) ||
-        a.title.toLowerCase().includes(q) ||
+      const match = a.id.toLowerCase().includes(q) || a.title.toLowerCase().includes(q) ||
         (a.employee_id && a.employee_id.toLowerCase().includes(q)) ||
         (a.account_id && a.account_id.toLowerCase().includes(q));
       if (!match) return false;
     }
     if (signalFilter) {
-      if (
-        !a.title.toLowerCase().includes(signalFilter.toLowerCase()) &&
-        !a.summary.toLowerCase().includes(signalFilter.toLowerCase())
-      ) {
-        return false;
-      }
+      if (!a.title.toLowerCase().includes(signalFilter.toLowerCase()) &&
+          !a.summary.toLowerCase().includes(signalFilter.toLowerCase())) return false;
     }
     return true;
   });
 
+  const inputStyle: React.CSSProperties = {
+    padding: '6px 10px',
+    borderRadius: 7,
+    border: '1px solid var(--surface-border)',
+    background: 'var(--surface-raised)',
+    fontSize: 12,
+    color: 'var(--text-primary)',
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 bg-[#0d0f17] px-6 py-3 shrink-0">
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', overflow: 'hidden', background: 'var(--surface-page)' }}>
+
+      {/* ── Header ──────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid var(--surface-border)', background: 'var(--surface-raised)', flexShrink: 0 }}>
         <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider text-cyan-400 uppercase">
-              Triage Queue & Evidence Panel
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 5, background: 'var(--forest-ghost)', color: 'var(--forest-primary)', border: '1px solid var(--forest-pale)' }}>
+              Triage Queue · Evidence Panel
             </span>
-            <span className="text-xs text-slate-400">Deterministic Prioritization</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Deterministic Prioritization</span>
           </div>
-          <h1 className="mt-0.5 text-base font-bold text-slate-100">
-            Correlated Financial & Insider Alerts
+          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
+            Correlated Financial &amp; Insider Alerts
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {selectedAlertId && (
             <button
               onClick={() => navigate(`/investigations/${selectedAlertId}`)}
-              className="flex items-center gap-1.5 rounded-lg bg-cyan-600/90 hover:bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, background: 'var(--forest-primary)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
-              <span>3-Screen Forensic Workspace</span>
-              <ExternalLink className="h-3.5 w-3.5" />
+              Full Investigation Workspace <ExternalLink size={12} />
             </button>
           )}
-
           <button
             onClick={loadAlerts}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-700 hover:text-slate-100 transition-colors"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, background: 'var(--surface-subtle)', border: '1px solid var(--surface-border)', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Refresh</span>
+            <RefreshCw size={13} /> Refresh
           </button>
         </div>
       </div>
 
-      {/* Main Split Layout: Left Alert Queue (7 cols), Right Mandatory Evidence/Explanation Panel (5 cols) */}
-      <div className="grid grid-cols-12 flex-1 overflow-hidden">
-        {/* Left Column: Filter Bar & Alert Queue */}
-        <div className="col-span-7 border-r border-slate-800/80 flex flex-col bg-[#0b0d14] overflow-hidden">
-          {/* Filter Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-800/80 bg-slate-900/40 p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
+      {/* ── Split layout ─────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', flex: 1, overflow: 'hidden' }}>
+
+        {/* ── LEFT: Alert Queue ────────────────────────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--surface-border)', overflow: 'hidden', background: 'var(--surface-page)' }}>
+
+          {/* Filter bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--surface-border)', background: 'var(--surface-raised)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Search */}
+              <div style={{ position: 'relative' }}>
+                <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="text"
                   placeholder="Search alert, employee, account..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-56 rounded-lg border border-slate-800 bg-slate-950 pl-8 pr-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
+                  style={{ ...inputStyle, paddingLeft: 28, width: 220 }}
                 />
               </div>
 
-              {/* Tier Filter */}
+              {/* Tier filter */}
               <select
                 value={tierFilter}
                 onChange={(e) => updateFilter('tier', e.target.value)}
-                className="rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 text-xs font-mono text-slate-300 focus:border-cyan-500 focus:outline-none"
+                style={inputStyle}
               >
                 <option value="">All Tiers</option>
                 <option value="CRITICAL">CRITICAL</option>
@@ -183,11 +172,11 @@ export const AlertsPage: React.FC = () => {
                 <option value="LOW">LOW</option>
               </select>
 
-              {/* Status Filter */}
+              {/* Status filter */}
               <select
                 value={statusFilter}
                 onChange={(e) => updateFilter('status', e.target.value)}
-                className="rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 text-xs font-mono text-slate-300 focus:border-cyan-500 focus:outline-none"
+                style={inputStyle}
               >
                 <option value="">All Statuses</option>
                 <option value="OPEN">OPEN</option>
@@ -197,135 +186,130 @@ export const AlertsPage: React.FC = () => {
               </select>
 
               {signalFilter && (
-                <div className="flex items-center gap-1 rounded bg-cyan-950/60 border border-cyan-500/40 px-2 py-0.5 text-xs text-cyan-300">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 5, background: 'var(--forest-ghost)', border: '1px solid var(--forest-pale)', fontSize: 11, color: 'var(--forest-primary)' }}>
                   <span>{signalFilter}</span>
-                  <button onClick={() => updateFilter('signal_type', '')} className="ml-1 text-cyan-400 hover:text-white">
-                    ✕
-                  </button>
+                  <button onClick={() => updateFilter('signal_type', '')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--forest-primary)', fontFamily: 'inherit', lineHeight: 1 }}>✕</button>
                 </div>
               )}
             </div>
-
-            <span className="text-[11px] font-mono text-slate-400">
-              <strong>{filteredAlerts.length}</strong> alerts
+            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-muted)' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{filteredAlerts.length}</strong> alerts
             </span>
           </div>
 
-          {/* Alerts List Scroll Area */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
+          {/* Alert list */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
             {loadingList ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-                  <span className="text-xs text-slate-400">Loading alerts queue...</span>
-                </div>
+              <div style={{ display: 'flex', height: 200, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--forest-pale)', borderTopColor: 'var(--forest-primary)', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading alert queue...</span>
               </div>
             ) : filteredAlerts.length === 0 ? (
-              <div className="flex h-64 flex-col items-center justify-center p-6 text-center text-slate-400">
-                <AlertTriangle className="h-8 w-8 text-slate-500 mb-2" />
-                <span className="text-sm font-semibold text-slate-300">No alerts match the selected criteria.</span>
-                <p className="mt-1 text-xs text-slate-500">Try clearing filters or search terms.</p>
+              <div style={{ display: 'flex', height: 200, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-muted)' }}>
+                <AlertTriangle size={24} />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>No alerts match filters</span>
+                <span style={{ fontSize: 12 }}>Try clearing filters or search terms.</span>
               </div>
-            ) : (
-              filteredAlerts.map((alert) => {
-                const isSelected = selectedAlertId === alert.id;
-                return (
-                  <div
-                    key={alert.id}
-                    onClick={() => handleSelectAlert(alert.id)}
-                    className={`cursor-pointer p-4 transition-all duration-150 ${
-                      isSelected
-                        ? 'border-l-4 border-cyan-500 bg-cyan-950/20 shadow-inner'
-                        : 'hover:bg-slate-900/40'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <RiskBadge tier={alert.tier} size="sm" pulsing={alert.tier === 'CRITICAL'} />
-                        <span className="font-mono text-xs font-bold text-cyan-400">{alert.id}</span>
-                      </div>
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono uppercase text-slate-300">
-                        {alert.status}
-                      </span>
+            ) : filteredAlerts.map((alert) => {
+              const isSelected = selectedAlertId === alert.id;
+              return (
+                <div
+                  key={alert.id}
+                  onClick={() => handleSelectAlert(alert.id)}
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid var(--surface-divider)',
+                    cursor: 'pointer',
+                    borderLeft: `3px solid ${isSelected ? 'var(--forest-primary)' : 'transparent'}`,
+                    background: isSelected ? 'var(--forest-ghost)' : 'transparent',
+                    transition: 'background 0.1s, border-left-color 0.15s',
+                  }}
+                  onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--surface-subtle)'; }}
+                  onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <RiskBadge tier={alert.tier} size="sm" pulsing={alert.tier === 'CRITICAL'} />
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--forest-primary)' }}>{alert.id}</span>
                     </div>
-
-                    <h3 className="mt-1.5 text-xs font-semibold text-slate-200 line-clamp-1">{alert.title}</h3>
-                    <p className="mt-1 text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{alert.summary}</p>
-
-                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-                      <div className="flex items-center gap-2">
-                        {alert.employee_id ? (
-                          <span className="rounded bg-orange-950/60 border border-orange-500/30 px-1.5 py-0.5 text-orange-300">
-                            Emp: {alert.employee_id}
-                          </span>
-                        ) : (
-                          <span className="text-slate-600">No Staff Tag</span>
-                        )}
-
-                        {alert.account_id && (
-                          <span className="rounded bg-cyan-950/60 border border-cyan-500/30 px-1.5 py-0.5 text-cyan-300">
-                            Acc: {alert.account_id}
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="text-slate-500 text-[10px]">
-                        {alert.created_at ? new Date(alert.created_at).toLocaleDateString() : 'Recent'}
-                      </span>
-                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 4, background: 'var(--surface-subtle)', color: 'var(--text-muted)', border: '1px solid var(--surface-border)' }}>
+                      {alert.status}
+                    </span>
                   </div>
-                );
-              })
-            )}
+
+                  <h3 style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{alert.title}</h3>
+                  <p style={{ margin: '0 0 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{alert.summary}</p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {alert.employee_id && (
+                        <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'var(--risk-high-bg)', color: 'var(--risk-high-text)', border: '1px solid var(--risk-high-border)' }}>
+                          {alert.employee_id}
+                        </span>
+                      )}
+                      {alert.account_id && (
+                        <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, padding: '2px 7px', borderRadius: 4, background: 'var(--risk-medium-bg)', color: 'var(--risk-medium-text)', border: '1px solid var(--risk-medium-border)' }}>
+                          {alert.account_id}
+                        </span>
+                      )}
+                      {!alert.employee_id && !alert.account_id && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>No entity tag</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                      {alert.created_at ? new Date(alert.created_at).toLocaleDateString() : 'Recent'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right Column: MANDATORY EVIDENCE & EXPLANATION PANEL (Alongside every alert) */}
-        <div className="col-span-5 flex flex-col bg-[#090a0f] overflow-hidden">
-          {/* Evidence Panel Header */}
-          <div className="flex items-center justify-between border-b border-slate-800/80 px-4 py-2.5 bg-slate-900/50">
-            <div className="flex items-center gap-2">
-              <FileCheck2 className="h-4 w-4 text-emerald-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Mandatory Evidence & Explanation Panel
+        {/* ── RIGHT: Evidence & Explanation Panel ──────────── */}
+        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface-page)', overflow: 'hidden' }}>
+          {/* Panel Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--surface-border)', background: 'var(--surface-raised)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileCheck2 size={14} color="var(--risk-low)" />
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                Evidence &amp; Explanation Panel
               </span>
             </div>
             {selectedAlertDetail && (
               <button
                 onClick={() => navigate(`/investigations/${selectedAlertDetail.id}`)}
-                className="flex items-center gap-1 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300"
-                title="Open full interactive Cytoscape network graph and activity timeline"
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--forest-sage)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                <span>Full Graph</span>
-                <ChevronRight className="h-3.5 w-3.5" />
+                Full Graph <ChevronRight size={13} />
               </button>
             )}
           </div>
 
-          {/* Evidence Panel Body */}
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          {/* Panel Body */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
             {loadingDetail ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-                  <span className="text-xs text-slate-400">Loading evidence dossier...</span>
-                </div>
+              <div style={{ display: 'flex', height: 200, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid var(--forest-pale)', borderTopColor: 'var(--forest-primary)', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading evidence dossier...</span>
               </div>
             ) : selectedAlertDetail ? (
               <EvidencePanel
                 alert={selectedAlertDetail}
-                onCaseCreated={(newCase) => {
-                  loadAlerts();
-                }}
+                onCaseCreated={() => { loadAlerts(); }}
               />
             ) : (
-              <div className="flex h-64 flex-col items-center justify-center p-6 text-center text-slate-500 text-xs">
-                Select an alert from the queue to view its mandatory evidence and explainability dossier.
+              <div style={{ display: 'flex', height: 200, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>
+                <Circle size={28} color="var(--surface-border)" />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>No alert selected</span>
+                <span style={{ fontSize: 12 }}>Select an alert from the queue to view its evidence and explainability dossier.</span>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

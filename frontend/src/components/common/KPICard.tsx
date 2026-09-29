@@ -1,6 +1,5 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
-import { AnimatedNumber } from '../motion/AnimatedNumber';
 
 interface KPICardProps {
   title: string;
@@ -8,10 +7,11 @@ interface KPICardProps {
   icon?: LucideIcon;
   subtitle?: string;
   badge?: string;
-  badgeColor?: 'red' | 'orange' | 'yellow' | 'blue' | 'emerald';
+  badgeColor?: 'red' | 'orange' | 'yellow' | 'blue' | 'green';
   trend?: string;
+  trendUp?: boolean;
   onClick?: () => void;
-  className?: string;
+  accentColor?: string;
 }
 
 export const KPICard: React.FC<KPICardProps> = ({
@@ -22,48 +22,80 @@ export const KPICard: React.FC<KPICardProps> = ({
   badge,
   badgeColor = 'blue',
   trend,
+  trendUp,
   onClick,
-  className = '',
+  accentColor,
 }) => {
-  const badgeClasses = {
-    red: 'bg-red-500/10 text-red-400 border-red-500/30',
-    orange: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-    yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-    blue: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  }[badgeColor];
+  const badgeStyles: Record<string, { bg: string; color: string; border: string }> = {
+    red:    { bg: 'var(--risk-critical-bg)',  color: 'var(--risk-critical)',  border: 'var(--risk-critical-border)' },
+    orange: { bg: 'var(--risk-high-bg)',      color: 'var(--risk-high)',      border: 'var(--risk-high-border)' },
+    yellow: { bg: 'var(--risk-medium-bg)',    color: 'var(--risk-medium)',    border: 'var(--risk-medium-border)' },
+    blue:   { bg: 'var(--risk-medium-bg)',    color: 'var(--risk-medium)',    border: 'var(--risk-medium-border)' },
+    green:  { bg: 'var(--risk-low-bg)',       color: 'var(--risk-low)',       border: 'var(--risk-low-border)' },
+  };
+  const bs = badgeStyles[badgeColor] || badgeStyles.blue;
 
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-xl border border-slate-800/80 bg-[#0c0e1a] p-4 shadow-lg backdrop-blur-sm transition-all duration-200 hover:border-slate-700 hover:bg-[#121526] ${
-        onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''
-      } ${className}`}
+      style={{
+        position: 'relative',
+        background: 'var(--surface-raised)',
+        border: '1px solid var(--surface-border)',
+        borderRadius: 12,
+        padding: '20px 20px 16px',
+        cursor: onClick ? 'pointer' : 'default',
+        transition: 'box-shadow 0.2s, transform 0.15s, border-color 0.15s',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={(e) => {
+        if (onClick) {
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(14,31,22,0.1)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'var(--forest-pale)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = '';
+        (e.currentTarget as HTMLElement).style.boxShadow = '';
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--surface-border)';
+      }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-slate-400">{title}</span>
+      {/* Accent top bar */}
+      {accentColor && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: accentColor, borderRadius: '12px 12px 0 0' }} />
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+          {title}
+        </span>
         {Icon && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800/60 text-slate-300">
-            <Icon className="h-4 w-4" />
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--forest-ghost)', border: '1px solid var(--forest-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon size={15} color="var(--forest-primary)" />
           </div>
         )}
       </div>
 
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-2xl font-bold tracking-tight text-slate-100">
-          {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+      <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1 }}>
+          {value}
         </span>
         {badge && (
-          <span className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-medium ${badgeClasses}`}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', padding: '2px 8px', borderRadius: 5, background: bs.bg, color: bs.color, border: `1px solid ${bs.border}` }}>
             {badge}
           </span>
         )}
       </div>
 
       {(subtitle || trend) && (
-        <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
-          {subtitle && <span>{subtitle}</span>}
-          {trend && <span className="font-medium text-emerald-400">{trend}</span>}
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {subtitle && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{subtitle}</span>}
+          {trend && (
+            <span style={{ fontSize: 11, fontWeight: 600, color: trendUp === false ? 'var(--risk-critical)' : 'var(--risk-low)' }}>
+              {trend}
+            </span>
+          )}
         </div>
       )}
     </div>

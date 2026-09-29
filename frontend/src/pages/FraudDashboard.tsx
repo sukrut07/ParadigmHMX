@@ -11,13 +11,41 @@ import {
   TrendingUp,
   RefreshCw,
   Activity,
-  ChevronRight
+  ChevronRight,
+  Circle,
 } from 'lucide-react';
 import { getFraudDashboard, getAlertTrend } from '../services/api';
 import { DashboardFraudData, RiskTier } from '../types';
 import { KPICard } from '../components/common/KPICard';
 import { RiskBadge } from '../components/common/RiskBadge';
 
+/* ── helpers ──────────────────────────────────────────────── */
+const S: React.CSSProperties = {};
+
+function Section({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--surface-border)', borderRadius: 12, padding: 20, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, subtitle, action }: { icon?: React.ComponentType<any>; title: string; subtitle?: string; action?: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid var(--surface-divider)' }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {Icon && <Icon size={15} color="var(--forest-sage)" />}
+          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</h2>
+        </div>
+        {subtitle && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/* ── component ────────────────────────────────────────────── */
 export const FraudDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardFraudData | null>(null);
@@ -46,16 +74,14 @@ export const FraudDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   if (loading && !data) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
-          <span className="text-xs font-medium text-slate-400">Loading Fraud Analyst Intelligence...</span>
+      <div style={{ display: 'flex', height: 'calc(100vh - 60px)', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid var(--forest-pale)', borderTopColor: 'var(--forest-primary)', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Loading Fraud Analyst Intelligence...</span>
         </div>
       </div>
     );
@@ -63,438 +89,342 @@ export const FraudDashboard: React.FC = () => {
 
   if (error && !data) {
     return (
-      <div className="p-8 text-center">
-        <div className="mx-auto max-w-md rounded-xl border border-red-500/30 bg-red-950/20 p-6">
-          <AlertTriangle className="mx-auto h-8 w-8 text-red-400 mb-2" />
-          <h2 className="text-sm font-bold text-red-200">Unable to load dashboard</h2>
-          <p className="mt-1 text-xs text-red-300/80">{error}</p>
-          <button
-            onClick={loadData}
-            className="mt-4 rounded-lg bg-red-500/20 border border-red-500/40 px-4 py-1.5 text-xs font-semibold text-red-200"
-          >
-            Retry
-          </button>
+      <div style={{ padding: 32, maxWidth: 480, margin: '60px auto' }}>
+        <div style={{ background: 'var(--risk-critical-bg)', border: '1px solid var(--risk-critical-border)', borderRadius: 12, padding: 24, textAlign: 'center' }}>
+          <AlertTriangle size={28} color="var(--risk-critical)" style={{ margin: '0 auto 8px' }} />
+          <div style={{ fontWeight: 700, color: 'var(--risk-critical-text)', marginBottom: 6 }}>Unable to load dashboard</div>
+          <div style={{ fontSize: 13, color: 'var(--risk-critical)', marginBottom: 16 }}>{error}</div>
+          <button onClick={loadData} style={{ padding: '8px 20px', borderRadius: 8, background: 'var(--risk-critical)', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer' }}>Retry</button>
         </div>
       </div>
     );
   }
 
-  const kpis = data?.kpis || {
-    critical_alerts: 0,
-    high_alerts: 0,
-    medium_alerts: 0,
-    low_alerts: 0,
-    open_cases: 0,
-    unassigned_alerts: 0,
-    suspicious_employees: 0,
-    suspicious_accounts: 0,
-    alerts_today: 0,
-  };
-
-  const riskDist = data?.risk_distribution || {
-    CRITICAL: 0,
-    HIGH: 0,
-    MEDIUM: 0,
-    LOW: 0,
-  };
-
+  const kpis = data?.kpis || { critical_alerts: 0, high_alerts: 0, medium_alerts: 0, low_alerts: 0, open_cases: 0, unassigned_alerts: 0, suspicious_employees: 0, suspicious_accounts: 0, alerts_today: 0 };
+  const riskDist = data?.risk_distribution || { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
   const signalDist = data?.signal_distribution || {};
+  const totalAlerts = Object.values(riskDist).reduce((a, b) => a + b, 0) || 1;
+
+  const tierColors: Record<string, string> = { CRITICAL: 'var(--risk-critical)', HIGH: 'var(--risk-high)', MEDIUM: 'var(--risk-medium)', LOW: 'var(--risk-low)' };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+    <div style={{ padding: '24px 28px', maxWidth: 1400, margin: '0 auto' }}>
+
+      {/* ── Page Header ─────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-red-500/10 border border-red-500/30 px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider text-red-400 uppercase">
-              Operational View
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '3px 10px', borderRadius: 5, background: 'var(--risk-critical-bg)', color: 'var(--risk-critical)', border: '1px solid var(--risk-critical-border)' }}>
+              Operational
             </span>
-            <span className="text-xs text-slate-400">Persona: Fraud Analyst</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Fraud Analyst · Financial Crime SOC</span>
           </div>
-          <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-100">
-            Financial Activity & Alert Prioritization
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+            Financial Activity &amp; Alert Prioritization
           </h1>
-          <p className="text-xs text-slate-400">
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
             "What suspicious financial activity needs my attention right now?"
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono text-slate-400">
-            Last updated: {lastUpdated || 'Just now'}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {lastUpdated && (
+            <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-muted)' }}>
+              Updated {lastUpdated}
+            </span>
+          )}
           <button
             onClick={loadData}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-700 hover:text-slate-100 transition-colors"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, background: 'var(--surface-raised)', border: '1px solid var(--surface-border)', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Refresh</span>
+            <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
+            Refresh
+          </button>
+          <button
+            onClick={() => navigate('/alerts?tier=CRITICAL')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, background: 'var(--forest-primary)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <AlertTriangle size={13} /> View Alert Queue
           </button>
         </div>
       </div>
 
-      {/* A. Top KPI Cards (6-8 cards max) */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-        <KPICard
-          title="Critical Alerts"
-          value={kpis.critical_alerts}
-          badge="Urgent"
-          badgeColor="red"
-          icon={Flame}
-          onClick={() => navigate('/alerts?tier=CRITICAL')}
-        />
-        <KPICard
-          title="High Alerts"
-          value={kpis.high_alerts}
-          badgeColor="orange"
-          icon={ShieldAlert}
-          onClick={() => navigate('/alerts?tier=HIGH')}
-        />
-        <KPICard
-          title="Medium Alerts"
-          value={kpis.medium_alerts}
-          badgeColor="yellow"
-          icon={AlertTriangle}
-          onClick={() => navigate('/alerts?tier=MEDIUM')}
-        />
-        <KPICard
-          title="Open Cases"
-          value={kpis.open_cases}
-          badgeColor="blue"
-          icon={Briefcase}
-          onClick={() => navigate('/cases?status=OPEN')}
-        />
-        <KPICard
-          title="Unassigned"
-          value={kpis.unassigned_alerts}
-          subtitle="Alerts without case"
-          icon={Activity}
-          onClick={() => navigate('/alerts?status=OPEN')}
-        />
-        <KPICard
-          title="Suspicious Emps"
-          value={kpis.suspicious_employees}
-          badgeColor="red"
-          icon={Users}
-          onClick={() => navigate('/employees')}
-        />
-        <KPICard
-          title="Suspicious Accs"
-          value={kpis.suspicious_accounts}
-          badgeColor="blue"
-          icon={CreditCard}
-          onClick={() => navigate('/accounts')}
-        />
+      {/* ── A. KPI Row ───────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 12, marginBottom: 20 }}>
+        <KPICard title="Critical Alerts" value={kpis.critical_alerts} badge="Urgent" badgeColor="red" icon={Flame} onClick={() => navigate('/alerts?tier=CRITICAL')} accentColor="var(--risk-critical)" />
+        <KPICard title="High Alerts" value={kpis.high_alerts} badgeColor="orange" icon={ShieldAlert} onClick={() => navigate('/alerts?tier=HIGH')} accentColor="var(--risk-high)" />
+        <KPICard title="Medium" value={kpis.medium_alerts} badgeColor="yellow" icon={AlertTriangle} onClick={() => navigate('/alerts?tier=MEDIUM')} accentColor="var(--risk-medium)" />
+        <KPICard title="Open Cases" value={kpis.open_cases} badgeColor="blue" icon={Briefcase} onClick={() => navigate('/cases?status=OPEN')} />
+        <KPICard title="Unassigned" value={kpis.unassigned_alerts} subtitle="Alerts without case" icon={Activity} onClick={() => navigate('/alerts?status=OPEN')} />
+        <KPICard title="Risky Employees" value={kpis.suspicious_employees} badgeColor="red" icon={Users} onClick={() => navigate('/employees')} />
+        <KPICard title="Risky Accounts" value={kpis.suspicious_accounts} badgeColor="blue" icon={CreditCard} onClick={() => navigate('/accounts')} />
       </div>
 
-      {/* B. Alert Trend & Risk Distribution */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Alert Trend (8 cols) */}
-        <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-sm lg:col-span-8">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-bold text-slate-100">Alert Trend Over Time</h2>
-            </div>
-            <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-0.5 text-[11px] font-mono">
-              {(['24h', '7d', '30d'] as const).map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setTrendFilter(filter)}
-                  className={`rounded px-2.5 py-1 transition-colors ${
-                    trendFilter === filter
-                      ? 'bg-cyan-500/20 text-cyan-300 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {filter.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* ── B. Trend + Risk Distribution ─────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
 
-          {/* Trend Bar Chart Visualization */}
-          <div className="mt-5 space-y-3">
+        {/* Trend */}
+        <Section>
+          <SectionHeader
+            icon={TrendingUp}
+            title="Alert Trend Over Time"
+            subtitle="Volume by risk tier — ranked deterministically"
+            action={
+              <div style={{ display: 'flex', gap: 2, background: 'var(--surface-subtle)', borderRadius: 7, padding: 2 }}>
+                {(['24h', '7d', '30d'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setTrendFilter(f)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 5,
+                      border: 'none',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      background: trendFilter === f ? 'var(--surface-raised)' : 'transparent',
+                      color: trendFilter === f ? 'var(--forest-primary)' : 'var(--text-muted)',
+                      boxShadow: trendFilter === f ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {f.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {trendData.length === 0 ? (
-              <div className="flex h-40 items-center justify-center text-xs text-slate-500">
-                No historical trend points recorded in database.
+              <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                No trend data recorded yet.
               </div>
-            ) : (
-              <div className="space-y-2">
-                {trendData.slice(0, 6).map((item, idx) => {
-                  const maxTotal = Math.max(...trendData.map((t) => t.total || 1), 1);
-                  const critPct = (item.CRITICAL / maxTotal) * 100;
-                  const highPct = (item.HIGH / maxTotal) * 100;
-                  const medPct = (item.MEDIUM / maxTotal) * 100;
-
-                  return (
-                    <div key={idx} className="group">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-slate-300">{item.date}</span>
-                        <div className="flex items-center gap-2 text-[11px] font-mono">
-                          <span className="text-red-400">Crit: {item.CRITICAL}</span>
-                          <span className="text-orange-400">High: {item.HIGH}</span>
-                          <span className="text-yellow-400">Med: {item.MEDIUM}</span>
-                          <span className="font-bold text-slate-200">Total: {item.total}</span>
-                        </div>
-                      </div>
-                      <div className="mt-1 flex h-3.5 w-full overflow-hidden rounded bg-slate-950 border border-slate-800/80">
-                        <div
-                          style={{ width: `${critPct}%` }}
-                          className="bg-red-500/80 hover:bg-red-500 transition-all"
-                          title={`Critical: ${item.CRITICAL}`}
-                        />
-                        <div
-                          style={{ width: `${highPct}%` }}
-                          className="bg-orange-500/80 hover:bg-orange-500 transition-all"
-                          title={`High: ${item.HIGH}`}
-                        />
-                        <div
-                          style={{ width: `${medPct}%` }}
-                          className="bg-yellow-500/80 hover:bg-yellow-500 transition-all"
-                          title={`Medium: ${item.MEDIUM}`}
-                        />
-                      </div>
+            ) : trendData.slice(0, 6).map((item, idx) => {
+              const maxTotal = Math.max(...trendData.map((t) => t.total || 1), 1);
+              const critPct = (item.CRITICAL / maxTotal) * 100;
+              const highPct = (item.HIGH / maxTotal) * 100;
+              const medPct = (item.MEDIUM / maxTotal) * 100;
+              return (
+                <div key={idx}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>{item.date}</span>
+                    <div style={{ display: 'flex', gap: 10, fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}>
+                      <span style={{ color: 'var(--risk-critical)' }}>C:{item.CRITICAL}</span>
+                      <span style={{ color: 'var(--risk-high)' }}>H:{item.HIGH}</span>
+                      <span style={{ color: 'var(--risk-medium)' }}>M:{item.MEDIUM}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.total}</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex items-center gap-4 pt-2 text-[11px] font-medium text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-red-500" /> Critical
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-orange-500" /> High
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-yellow-500" /> Medium
-              </span>
-            </div>
+                  </div>
+                  <div style={{ height: 8, display: 'flex', borderRadius: 4, overflow: 'hidden', background: 'var(--surface-subtle)' }}>
+                    <div style={{ width: `${critPct}%`, background: 'var(--risk-critical)', transition: 'width 0.5s' }} />
+                    <div style={{ width: `${highPct}%`, background: 'var(--risk-high)', transition: 'width 0.5s' }} />
+                    <div style={{ width: `${medPct}%`, background: 'var(--risk-medium)', transition: 'width 0.5s' }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-
-        {/* Risk Distribution (4 cols) */}
-        <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-sm lg:col-span-4">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-bold text-slate-100">Risk Tier Distribution</h2>
-            </div>
+          <div style={{ display: 'flex', gap: 16, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--surface-divider)' }}>
+            {[['Critical', 'var(--risk-critical)'], ['High', 'var(--risk-high)'], ['Medium', 'var(--risk-medium)']].map(([label, color]) => (
+              <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-muted)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: 'inline-block' }} /> {label}
+              </span>
+            ))}
           </div>
+        </Section>
 
-          <div className="mt-4 space-y-3">
+        {/* Risk Distribution */}
+        <Section>
+          <SectionHeader icon={ShieldAlert} title="Risk Tier Distribution" subtitle="Click tier to filter alert queue" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as RiskTier[]).map((tier) => {
               const count = riskDist[tier] || 0;
-              const total = Object.values(riskDist).reduce((a, b) => a + b, 0) || 1;
-              const pct = Math.round((count / total) * 100);
-
-              const barColor =
-                tier === 'CRITICAL' ? 'bg-red-500' :
-                tier === 'HIGH' ? 'bg-orange-500' :
-                tier === 'MEDIUM' ? 'bg-yellow-500' : 'bg-cyan-500';
-
+              const pct = Math.round((count / totalAlerts) * 100);
               return (
                 <div
                   key={tier}
                   onClick={() => navigate(`/alerts?tier=${tier}`)}
-                  className="group cursor-pointer rounded-lg p-2 transition-all hover:bg-slate-800/60"
+                  style={{ cursor: 'pointer', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--surface-divider)', transition: 'background 0.15s', background: 'transparent' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-subtle)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <div className="flex items-center justify-between text-xs">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     <RiskBadge tier={tier} size="sm" />
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-slate-200">{count}</span>
-                      <span className="text-[11px] text-slate-400">({pct}%)</span>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}>{count}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{pct}%</span>
                     </div>
                   </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-950 border border-slate-800/60">
-                    <div
-                      style={{ width: `${pct}%` }}
-                      className={`h-full ${barColor} transition-all duration-500`}
-                    />
+                  <div style={{ height: 5, borderRadius: 3, background: 'var(--surface-subtle)', overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: tierColors[tier], borderRadius: 3, transition: 'width 0.6s var(--ease-smooth)' }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Section>
       </div>
 
-      {/* C. Signal Distribution & Top Risk Entities */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Signal Distribution (6 cols) */}
-        <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-sm lg:col-span-6">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-bold text-slate-100">Top Suspicious Signal Types</h2>
-            </div>
-            <span className="text-[11px] font-mono text-slate-400">Correlated Detectors</span>
-          </div>
+      {/* ── C. Signal Distribution + Entities ────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
+        {/* Signal types */}
+        <Section>
+          <SectionHeader icon={Activity} title="Top Suspicious Signal Types" subtitle="Active detectors by incident count" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {Object.entries(signalDist).map(([sigKey, count]) => {
-              const formattedName = sigKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+              const name = sigKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
               return (
                 <div
                   key={sigKey}
                   onClick={() => navigate(`/alerts?signal_type=${sigKey}`)}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-800/80 bg-slate-950/60 px-3 py-2 text-xs transition-colors hover:border-cyan-500/50 hover:bg-slate-900"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--surface-border)', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s', background: 'var(--surface-page)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--forest-pale)'; (e.currentTarget as HTMLElement).style.background = 'var(--forest-ghost)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--surface-border)'; (e.currentTarget as HTMLElement).style.background = 'var(--surface-page)'; }}
                 >
-                  <span className="text-slate-300 truncate pr-2">{formattedName}</span>
-                  <span className="font-mono font-bold text-cyan-400">{count}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--forest-primary)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{count as number}</span>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Section>
 
-        {/* Top Risk Entities (6 cols) */}
-        <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-sm lg:col-span-6">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-bold text-slate-100">Top Risk Entities</h2>
+        {/* Top entities */}
+        <Section>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--surface-divider)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={15} color="var(--forest-sage)" />
+              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Top Risk Entities</h2>
             </div>
-
-            {/* Entity Tabs */}
-            <div className="flex rounded-lg border border-slate-800 bg-slate-950 p-0.5 text-xs font-medium">
-              <button
-                onClick={() => setEntityTab('employees')}
-                className={`rounded px-3 py-1 transition-colors ${
-                  entityTab === 'employees' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400'
-                }`}
-              >
-                Employees
-              </button>
-              <button
-                onClick={() => setEntityTab('accounts')}
-                className={`rounded px-3 py-1 transition-colors ${
-                  entityTab === 'accounts' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400'
-                }`}
-              >
-                Accounts
-              </button>
+            <div style={{ display: 'flex', gap: 2, background: 'var(--surface-subtle)', borderRadius: 7, padding: 2 }}>
+              {(['employees', 'accounts'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setEntityTab(tab)}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 5,
+                    border: 'none',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    background: entityTab === tab ? 'var(--surface-raised)' : 'transparent',
+                    color: entityTab === tab ? 'var(--forest-primary)' : 'var(--text-muted)',
+                    boxShadow: entityTab === tab ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    textTransform: 'capitalize',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
           </div>
-
-          <div className="mt-4 space-y-2">
-            {entityTab === 'employees' ? (
-              (data?.top_entities?.employees || []).slice(0, 5).map((emp) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {entityTab === 'employees'
+              ? (data?.top_entities?.employees || []).slice(0, 5).map((emp) => (
                 <div
                   key={emp.id}
                   onClick={() => navigate(`/employees/${emp.id}`)}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-800/60 bg-slate-950/40 p-2.5 transition-colors hover:border-slate-700 hover:bg-slate-900"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--surface-border)', cursor: 'pointer', transition: 'background 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-subtle)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-semibold text-cyan-300">{emp.id}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--forest-primary)' }}>{emp.id}</span>
                     <RiskBadge tier={emp.risk} size="sm" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-400 font-mono">Weight: {emp.weight}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>wt:{emp.weight}</span>
+                    <ChevronRight size={14} color="var(--text-muted)" />
                   </div>
                 </div>
               ))
-            ) : (
-              (data?.top_entities?.accounts || []).slice(0, 5).map((acc) => (
+              : (data?.top_entities?.accounts || []).slice(0, 5).map((acc) => (
                 <div
                   key={acc.id}
                   onClick={() => navigate(`/accounts?search=${acc.id}`)}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-800/60 bg-slate-950/40 p-2.5 transition-colors hover:border-slate-700 hover:bg-slate-900"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--surface-border)', cursor: 'pointer', transition: 'background 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-subtle)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-semibold text-cyan-300">{acc.id}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--forest-primary)' }}>{acc.id}</span>
                     <RiskBadge tier={acc.risk} size="sm" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-400 font-mono">Weight: {acc.weight}</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>wt:{acc.weight}</span>
+                    <ChevronRight size={14} color="var(--text-muted)" />
                   </div>
                 </div>
               ))
-            )}
+            }
           </div>
-        </div>
+        </Section>
       </div>
 
-      {/* D. Priority Alerts List / Table */}
-      <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-5 backdrop-blur-sm">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-100">Priority Financial & Correlation Alerts</h2>
-            <p className="text-xs text-slate-400">
-              Ranked deterministically by risk tier (CRITICAL &gt; HIGH) and incident recency
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/alerts')}
-            className="flex items-center gap-1 text-xs font-semibold text-cyan-400 hover:underline"
-          >
-            <span>View All Alerts</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
+      {/* ── D. Priority Alerts Table ──────────────────────── */}
+      <Section>
+        <SectionHeader
+          icon={AlertTriangle}
+          title="Priority Financial & Correlation Alerts"
+          subtitle="Ranked deterministically by risk tier (CRITICAL → HIGH) and incident recency"
+          action={
+            <button
+              onClick={() => navigate('/alerts')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--forest-sage)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              View All <ArrowRight size={13} />
+            </button>
+          }
+        />
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              <tr>
-                <th className="pb-3 pl-3">Tier</th>
-                <th className="pb-3">Alert ID</th>
-                <th className="pb-3">Incident Summary</th>
-                <th className="pb-3">Employee</th>
-                <th className="pb-3">Account</th>
-                <th className="pb-3">Signals</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 pr-3 text-right">Action</th>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--surface-border)' }}>
+                {['Tier', 'Alert ID', 'Incident Summary', 'Employee', 'Account', 'Signals', 'Status', ''].map((h) => (
+                  <th key={h} style={{ padding: '0 12px 10px', textAlign: 'left', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
-              {(data?.priority_alerts || []).map((alert) => (
+            <tbody>
+              {(data?.priority_alerts || []).map((alert, i) => (
                 <tr
                   key={alert.id}
                   onClick={() => navigate(`/investigations/${alert.id}`)}
-                  className="cursor-pointer transition-colors hover:bg-slate-800/40"
+                  style={{ borderBottom: '1px solid var(--surface-divider)', cursor: 'pointer', transition: 'background 0.1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-subtle)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}
                 >
-                  <td className="py-3 pl-3 font-sans">
-                    <RiskBadge tier={alert.tier} size="sm" />
+                  <td style={{ padding: '11px 12px' }}><RiskBadge tier={alert.tier} size="sm" pulsing={alert.tier === 'CRITICAL'} /></td>
+                  <td style={{ padding: '11px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: 'var(--forest-primary)', whiteSpace: 'nowrap' }}>{alert.id}</td>
+                  <td style={{ padding: '11px 12px', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }} title={alert.title}>{alert.title}</td>
+                  <td style={{ padding: '11px 12px' }}>
+                    {alert.employee_id
+                      ? <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: 'var(--risk-high-bg)', color: 'var(--risk-high-text)', border: '1px solid var(--risk-high-border)' }}>{alert.employee_id}</span>
+                      : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                   </td>
-                  <td className="py-3 font-semibold text-cyan-400">{alert.id}</td>
-                  <td className="py-3 font-sans text-slate-200 max-w-xs truncate" title={alert.title}>
-                    {alert.title}
+                  <td style={{ padding: '11px 12px' }}>
+                    {alert.account_id
+                      ? <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: 'var(--risk-medium-bg)', color: 'var(--risk-medium-text)', border: '1px solid var(--risk-medium-border)' }}>{alert.account_id}</span>
+                      : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                   </td>
-                  <td className="py-3 text-slate-300">
-                    {alert.employee_id ? (
-                      <span className="rounded bg-orange-950/60 border border-orange-500/30 px-1.5 py-0.5 text-orange-400">
-                        {alert.employee_id}
-                      </span>
-                    ) : (
-                      <span className="text-slate-600">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 text-slate-300">
-                    {alert.account_id ? (
-                      <span className="rounded bg-cyan-950/60 border border-cyan-500/30 px-1.5 py-0.5 text-cyan-400">
-                        {alert.account_id}
-                      </span>
-                    ) : (
-                      <span className="text-slate-600">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 text-slate-300">{alert.signal_count}</td>
-                  <td className="py-3 font-sans">
-                    <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-300">
+                  <td style={{ padding: '11px 12px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: 'var(--text-secondary)' }}>{alert.signal_count}</td>
+                  <td style={{ padding: '11px 12px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 5, background: 'var(--surface-subtle)', color: 'var(--text-muted)', border: '1px solid var(--surface-border)' }}>
                       {alert.status}
                     </span>
                   </td>
-                  <td className="py-3 pr-3 text-right font-sans">
+                  <td style={{ padding: '11px 12px', textAlign: 'right' }}>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/investigations/${alert.id}`);
-                      }}
-                      className="rounded bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/investigations/${alert.id}`); }}
+                      style={{ padding: '5px 12px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--forest-ghost)', color: 'var(--forest-primary)', border: '1px solid var(--forest-pale)', transition: 'background 0.15s' }}
                     >
                       Investigate
                     </button>
@@ -503,8 +433,15 @@ export const FraudDashboard: React.FC = () => {
               ))}
             </tbody>
           </table>
+          {(!data?.priority_alerts || data.priority_alerts.length === 0) && (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+              No priority alerts — pipeline is clear.
+            </div>
+          )}
         </div>
-      </div>
+      </Section>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

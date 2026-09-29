@@ -16,6 +16,7 @@ import {
   Command,
   Globe,
   SlidersHorizontal,
+  Circle,
 } from 'lucide-react';
 import { UserRole } from '../../types';
 import { GlobalSearchModal } from './GlobalSearchModal';
@@ -26,21 +27,36 @@ interface ShellProps {
   onRoleChange: (role: UserRole) => void;
 }
 
+const roleLabels: Record<UserRole, { label: string; abbr: string; question: string }> = {
+  FRAUD_ANALYST: {
+    label: 'Fraud Analyst',
+    abbr: 'FA',
+    question: 'What should I investigate today?',
+  },
+  INTERNAL_AUDITOR: {
+    label: 'Internal Auditor',
+    abbr: 'IA',
+    question: 'Which employees need review?',
+  },
+  COMPLIANCE_HEAD: {
+    label: 'Compliance Head',
+    abbr: 'CH',
+    question: 'Is the pipeline performing?',
+  },
+};
+
 export const Shell: React.FC<ShellProps> = ({ children, currentRole, onRoleChange }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Keyboard shortcut Cmd/Ctrl + K for global search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
       }
-      if (e.key === 'Escape') {
-        setSearchOpen(false);
-      }
+      if (e.key === 'Escape') setSearchOpen(false);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -54,67 +70,108 @@ export const Shell: React.FC<ShellProps> = ({ children, currentRole, onRoleChang
 
   const navGroups = [
     {
-      group: 'OVERVIEW',
+      group: 'Overview',
       items: [
-        { label: 'Role Dashboard', path: getDashboardPath(), icon: LayoutDashboard },
-        { label: 'Product Story (Home)', path: '/', icon: Globe },
+        { label: 'Dashboard', path: getDashboardPath(), icon: LayoutDashboard },
+        { label: 'Product Home', path: '/', icon: Globe, exact: true },
       ],
     },
     {
-      group: 'INVESTIGATE',
+      group: 'Investigate',
       items: [
         { label: 'Alert Queue', path: '/alerts', icon: AlertTriangle },
-        { label: 'Investigations', path: '/investigations', icon: Network },
+        { label: 'Case Graph', path: '/investigations', icon: Network },
       ],
     },
     {
-      group: 'ENTITIES',
+      group: 'Entities',
       items: [
         { label: 'Employees & Risk', path: '/employees', icon: Users },
         { label: 'Accounts & Mules', path: '/accounts', icon: CreditCard },
       ],
     },
     {
-      group: 'OPERATIONS',
+      group: 'Operations',
       items: [
         { label: 'Case Management', path: '/cases', icon: Briefcase },
         { label: 'Evidence Center', path: '/evidence', icon: FileCheck2 },
       ],
     },
     {
-      group: 'ANALYTICS',
+      group: 'Analytics',
       items: [
-        { label: 'Evaluation Metrics', path: '/evaluation', icon: BarChart3 },
-        { label: 'Red-Team Simulator', path: '/simulation', icon: Flame },
+        { label: 'Evaluation', path: '/evaluation', icon: BarChart3 },
+        { label: 'Red-Team Sim', path: '/simulation', icon: Flame },
       ],
     },
   ];
 
+  const isActive = (path: string, exact?: boolean) => {
+    if (exact) return location.pathname === path;
+    if (path === '/') return location.pathname === '/';
+    if (path.startsWith('/dashboard')) return location.pathname.startsWith('/dashboard');
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const role = roleLabels[currentRole];
+
   return (
-    <div className="flex min-h-screen bg-[#050315] text-slate-100">
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-800/80 bg-[#080a14]">
-        {/* Brand Header */}
-        <Link to="/" className="flex h-16 items-center gap-3 border-b border-slate-800/80 px-6 hover:bg-slate-900/40 transition-colors">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-600 to-indigo-600 text-white shadow-lg shadow-cyan-900/30">
-            <ShieldAlert className="h-5 w-5" />
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--surface-page)' }}>
+      {/* ── Sidebar ─────────────────────────────────────── */}
+      <aside
+        style={{
+          position: 'fixed',
+          inset: '0 auto 0 0',
+          zIndex: 30,
+          width: 232,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--forest-deep)',
+        }}
+      >
+        {/* Brand */}
+        <Link
+          to="/"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            height: 60,
+            padding: '0 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            textDecoration: 'none',
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, var(--forest-sage), var(--forest-mid))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ShieldAlert size={16} color="#fff" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 font-bold tracking-wider text-slate-100">
-              <span>INSIDER</span>
-              <span className="text-cyan-400">TRACE</span>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: '#fff' }}>
+              INSIDER<span style={{ color: 'var(--forest-pale)' }}>TRACE</span>
             </div>
-            <div className="text-[10px] tracking-tight text-slate-400">Financial Crime & Insider Risk</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+              Financial Crime Intelligence
+            </div>
           </div>
         </Link>
 
-        {/* Role Switcher Pill */}
-        <div className="p-4 pb-2">
-          <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-            <span>Active Persona</span>
-            <SlidersHorizontal className="h-3 w-3 text-slate-400" />
+        {/* Persona Switcher */}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>
+            Active Persona
           </div>
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
             <select
               value={currentRole}
               onChange={(e) => {
@@ -126,119 +183,233 @@ export const Shell: React.FC<ShellProps> = ({ children, currentRole, onRoleChang
                   else navigate('/dashboard/compliance');
                 }
               }}
-              className="w-full appearance-none rounded-lg border border-slate-700/80 bg-slate-900/90 px-3 py-2 pr-8 text-xs font-medium text-slate-200 shadow-sm focus:border-cyan-500 focus:outline-none cursor-pointer"
+              style={{
+                width: '100%',
+                appearance: 'none',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8,
+                padding: '7px 32px 7px 10px',
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#fff',
+                cursor: 'pointer',
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
             >
-              <option value="FRAUD_ANALYST">Fraud Analyst (Financial)</option>
-              <option value="INTERNAL_AUDITOR">Internal Auditor (Employee)</option>
-              <option value="COMPLIANCE_HEAD">Compliance Head (Executive)</option>
+              <option value="FRAUD_ANALYST">Fraud Analyst</option>
+              <option value="INTERNAL_AUDITOR">Internal Auditor</option>
+              <option value="COMPLIANCE_HEAD">Compliance Head</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
+            <ChevronDown
+              size={14}
+              color="rgba(255,255,255,0.4)"
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            />
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic' }}>
+            {role.question}
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-2">
+        {/* Nav */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 12px' }}>
           {navGroups.map((group) => (
-            <div key={group.group}>
-              <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.group}</div>
-              <div className="mt-1 space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive =
-                    item.path === '/'
-                      ? location.pathname === '/'
-                      : location.pathname === item.path ||
-                        (item.path.startsWith('/dashboard') && location.pathname.startsWith('/dashboard'));
-                  return (
-                    <Link
-                      key={item.label}
-                      to={item.path}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                        isActive
-                          ? 'border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 shadow-sm'
-                          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
+            <div key={group.group} style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.3)',
+                  padding: '0 8px',
+                  marginBottom: 4,
+                }}
+              >
+                {group.group}
               </div>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path, item.exact);
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.path}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                    style={{ marginBottom: 2 }}
+                  >
+                    <Icon size={15} style={{ flexShrink: 0 }} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
             </div>
           ))}
         </nav>
 
-        {/* Engine Status Footer */}
-        <div className="border-t border-slate-800/80 p-4 bg-[#060710]">
-          <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-slate-300 font-medium">Pipeline: Active</span>
-            </div>
-            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-slate-300">v1.1.0</span>
+        {/* Footer status */}
+        <div
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Circle size={7} fill="var(--forest-pale)" color="var(--forest-pale)" style={{ animation: 'pulse-dot 2s infinite' }} />
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Pipeline Active</span>
           </div>
-          <div className="mt-1 text-[10px] text-slate-400">Deterministic Tiering & SHA-256 Validated</div>
+          <span
+            style={{
+              fontSize: 10,
+              fontFamily: 'monospace',
+              color: 'rgba(255,255,255,0.3)',
+              background: 'rgba(255,255,255,0.06)',
+              padding: '2px 6px',
+              borderRadius: 4,
+            }}
+          >
+            v1.1.0
+          </span>
         </div>
       </aside>
 
-      {/* Main Container */}
-      <div className="flex flex-1 flex-col pl-64">
-        {/* Top Navbar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-800/80 bg-[#080a14]/90 px-8 backdrop-blur-md">
-          {/* Quick Search Button */}
+      {/* ── Main ────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 232 }}>
+        {/* Top Bar */}
+        <header
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 20,
+            height: 60,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 28px',
+            background: 'rgba(247,248,243,0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderBottom: '1px solid var(--surface-border)',
+          }}
+        >
+          {/* Search */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-1.5 text-xs text-slate-400 transition-colors hover:border-slate-700 hover:text-slate-300"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '7px 14px',
+              borderRadius: 8,
+              border: '1px solid var(--surface-border)',
+              background: 'var(--surface-raised)',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: 'var(--text-muted)',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+              minWidth: 260,
+            }}
           >
-            <Search className="h-4 w-4 text-slate-400" />
-            <span>Search employee, account, alert, transaction...</span>
-            <kbd className="ml-4 flex items-center gap-0.5 rounded border border-slate-700 bg-slate-800/80 px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
-              <Command className="h-3 w-3" /> K
+            <Search size={14} color="var(--text-muted)" />
+            <span>Search employee, account, alert...</span>
+            <kbd
+              style={{
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                padding: '2px 6px',
+                fontSize: 10,
+                fontFamily: 'monospace',
+                borderRadius: 4,
+                border: '1px solid var(--surface-border)',
+                background: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <Command size={10} /> K
             </kbd>
           </button>
 
-          {/* Right Controls */}
-          <div className="flex items-center gap-4">
-            {/* Persona Indicator Badge */}
-            <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/80 px-3 py-1 text-xs md:flex">
-              <span className="h-2 w-2 rounded-full bg-cyan-400" />
-              <span className="text-slate-300">
-                {currentRole === 'FRAUD_ANALYST'
-                  ? 'Fraud Analyst View'
-                  : currentRole === 'INTERNAL_AUDITOR'
-                  ? 'Internal Audit View'
-                  : 'Compliance Executive'}
-              </span>
+          {/* Right */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Active persona badge */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '5px 12px',
+                borderRadius: 999,
+                background: 'var(--forest-ghost)',
+                border: '1px solid var(--forest-pale)',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--forest-primary)',
+              }}
+            >
+              <Circle size={7} fill="var(--forest-sage)" color="var(--forest-sage)" />
+              {role.label}
             </div>
 
-            {/* Quick Demo Primary Investigation Link */}
+            {/* Priority alerts CTA */}
             <Link
               to="/alerts"
-              className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-1.5 text-xs font-medium text-rose-300 transition-colors hover:bg-rose-900/40"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 14px',
+                borderRadius: 8,
+                background: 'var(--risk-critical-bg)',
+                border: '1px solid var(--risk-critical-border)',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--risk-critical)',
+                textDecoration: 'none',
+                transition: 'background 0.15s',
+              }}
             >
-              <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
-              <span>Priority Alerts</span>
+              <AlertTriangle size={13} />
+              Priority Alerts
             </Link>
 
-            {/* User Profile */}
-            <div className="flex items-center gap-2.5 border-l border-slate-800 pl-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-700 to-indigo-900 text-xs font-bold text-white border border-indigo-500/30">
-                IN
+            {/* User avatar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 16, borderLeft: '1px solid var(--surface-border)' }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--forest-primary), var(--forest-sage))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#fff',
+                  flexShrink: 0,
+                }}
+              >
+                {role.abbr}
               </div>
-              <div className="hidden text-left lg:block">
-                <div className="text-xs font-medium text-slate-200">Investigator 01</div>
-                <div className="text-[10px] text-slate-400">Financial Crime SOC</div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Investigator 01</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Financial Crime SOC</div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Workspace Body */}
-        <main className="flex-1">{children}</main>
+        {/* Main Content */}
+        <main style={{ flex: 1 }}>{children}</main>
       </div>
 
-      {/* Global Command Palette Modal */}
       <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );

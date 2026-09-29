@@ -10,31 +10,47 @@ interface RiskBadgeProps {
 export const RiskBadge: React.FC<RiskBadgeProps> = ({ tier, size = 'md', pulsing = false }) => {
   const upper = (tier || 'LOW').toUpperCase();
 
-  const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-xs px-2.5 py-1 font-semibold',
-    lg: 'text-sm px-3.5 py-1.5 font-bold',
+  const sizeStyle = {
+    sm: { fontSize: 10, padding: '2px 8px' },
+    md: { fontSize: 11, padding: '3px 10px' },
+    lg: { fontSize: 12, padding: '4px 12px' },
   }[size];
 
-  const colorStyles: Record<string, string> = {
-    CRITICAL: 'bg-red-950/70 text-red-400 border border-red-500/50 shadow-sm shadow-red-950',
-    HIGH: 'bg-orange-950/70 text-orange-400 border border-orange-500/50 shadow-sm shadow-orange-950',
-    MEDIUM: 'bg-yellow-950/70 text-yellow-400 border border-yellow-500/50',
-    LOW: 'bg-blue-950/70 text-blue-400 border border-blue-500/40',
+  const tierStyles: Record<string, { bg: string; color: string; border: string; dot: string }> = {
+    CRITICAL: { bg: 'var(--risk-critical-bg)', color: 'var(--risk-critical-text)', border: 'var(--risk-critical-border)', dot: 'var(--risk-critical)' },
+    HIGH:     { bg: 'var(--risk-high-bg)',      color: 'var(--risk-high-text)',     border: 'var(--risk-high-border)',    dot: 'var(--risk-high)' },
+    MEDIUM:   { bg: 'var(--risk-medium-bg)',    color: 'var(--risk-medium-text)',   border: 'var(--risk-medium-border)',  dot: 'var(--risk-medium)' },
+    LOW:      { bg: 'var(--risk-low-bg)',       color: 'var(--risk-low-text)',      border: 'var(--risk-low-border)',     dot: 'var(--risk-low)' },
   };
 
-  const style = colorStyles[upper] || 'bg-slate-900 text-slate-300 border border-slate-700';
+  const ts = tierStyles[upper] || { bg: 'var(--surface-subtle)', color: 'var(--text-muted)', border: 'var(--surface-border)', dot: 'var(--text-muted)' };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md tracking-wider uppercase ${sizeClasses} ${style}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        borderRadius: 6,
+        fontWeight: 700,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+        background: ts.bg,
+        color: ts.color,
+        border: `1px solid ${ts.border}`,
+        fontFamily: 'inherit',
+        ...sizeStyle,
+      }}
     >
       <span
-        className={`w-1.5 h-1.5 rounded-full ${
-          upper === 'CRITICAL' ? 'bg-red-400' :
-          upper === 'HIGH' ? 'bg-orange-400' :
-          upper === 'MEDIUM' ? 'bg-yellow-400' : 'bg-blue-400'
-        } ${pulsing && upper === 'CRITICAL' ? 'animate-ping' : ''}`}
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          background: ts.dot,
+          flexShrink: 0,
+          animation: pulsing && upper === 'CRITICAL' ? 'pulse-dot 1.5s infinite' : undefined,
+        }}
       />
       {upper}
     </span>

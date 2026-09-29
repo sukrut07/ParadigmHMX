@@ -1,55 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────
+   INSIDERTRACE — DESIGN TOKENS
+   Forest Intelligence · Premium Financial Crime Platform
+   Palette: off-white (#F7F8F3) / deep forest (#0E1F16) / forest (#173D2B) / sage (#3D6B50)
+────────────────────────────────────────────────────────────────── */
+
 :root {
-  /* Realtime Colors Dark-First Financial Intelligence Palette */
-  --bg-primary: #050315;
-  --bg-secondary: #090a14;
-  --bg-card: #0e111d;
-  --bg-card-hover: #15192b;
-  --bg-card-active: #1c2138;
-  --bg-subtle: #0b0e18;
-  
-  --border-color: #242938;
-  --border-subtle: #191e2e;
-  --border-focused: #3d4766;
-  
-  --text-main: #fbfbfe;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  
-  /* Brand Accent Tokens */
-  --accent-primary: #433bff;
-  --accent-indigo: #2f27ce;
-  --accent-light: #dedcff;
-  --accent-cyan: #06b6d4;
-  --accent-emerald: #10b981;
-  
-  /* Semantic Risk Colors */
-  --risk-critical: #ef4444;
-  --risk-critical-bg: rgba(239, 68, 68, 0.12);
-  --risk-critical-border: rgba(239, 68, 68, 0.35);
+  /* Surface */
+  --surface-page:      #F7F8F3;
+  --surface-raised:    #FFFFFF;
+  --surface-subtle:    #EFF0EA;
+  --surface-border:    #D8DACE;
+  --surface-divider:   #E6E8DF;
 
-  --risk-high: #f97316;
-  --risk-high-bg: rgba(249, 115, 22, 0.12);
-  --risk-high-border: rgba(249, 115, 22, 0.35);
-
-  --risk-medium: #eab308;
-  --risk-medium-bg: rgba(234, 179, 8, 0.12);
-  --risk-medium-border: rgba(234, 179, 8, 0.35);
-
-  --risk-low: #3b82f6;
-  --risk-low-bg: rgba(59, 130, 246, 0.12);
-  --risk-low-border: rgba(59, 130, 246, 0.35);
+  /* Forest Brand */
+  --forest-deep:       #0E1F16;
+  --forest-primary:    #173D2B;
+  --forest-mid:        #234D37;
+  --forest-sage:       #3D6B50;
+  --forest-light:      #5C8A6E;
+  --forest-pale:       #C8DDD2;
+  --forest-ghost:      #EBF3EE;
   
-  --risk-neutral: #64748b;
+  /* Text */
+  --text-primary:      #0E1F16;
+  --text-secondary:    #3D5040;
+  --text-muted:        #6B7E70;
+  --text-inverse:      #F7F8F3;
+  --text-inverse-muted:#B8CCC0;
+
+  /* Semantic Risk — layered on forest context */
+  --risk-critical:       #C92C2C;
+  --risk-critical-bg:    #FEF2F2;
+  --risk-critical-border:#FECACA;
+  --risk-critical-text:  #7F1D1D;
+
+  --risk-high:           #D97706;
+  --risk-high-bg:        #FFFBEB;
+  --risk-high-border:    #FDE68A;
+  --risk-high-text:      #78350F;
+
+  --risk-medium:         #0369A1;
+  --risk-medium-bg:      #EFF6FF;
+  --risk-medium-border:  #BAE6FD;
+  --risk-medium-text:    #0C4A6E;
+
+  --risk-low:            #15803D;
+  --risk-low-bg:         #F0FDF4;
+  --risk-low-border:     #BBF7D0;
+  --risk-low-text:       #14532D;
+
+  /* Motion Easing */
+  --ease-smooth:       cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-precise:      cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:       cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── BASE ────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-primary);
-  color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--surface-page);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -62,97 +86,419 @@ body {
   flex-direction: column;
 }
 
-/* Custom Scrollbar for Analyst Workstations */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ─── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surface-subtle); }
+::-webkit-scrollbar-thumb { background: var(--forest-pale); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--forest-sage); }
+
+/* ─── TYPOGRAPHY ──────────────────────────────────────────────── */
+.font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 }
 
-::-webkit-scrollbar-track {
-  background: #050315;
+/* ─── UTILITY CLASSES ─────────────────────────────────────────── */
+.surface-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #1e2436;
-  border-radius: 3px;
+.surface-card-sm {
+  background: var(--surface-raised);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #333d59;
+.surface-inset {
+  background: var(--surface-subtle);
+  border: 1px solid var(--surface-divider);
+  border-radius: 8px;
 }
 
-/* Cytoscape container styling */
+/* Forest Sidebar Surface */
+.forest-sidebar {
+  background: var(--forest-deep);
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ─── CYTOSCAPE ───────────────────────────────────────────────── */
 .cytoscape-container {
   width: 100%;
   height: 100%;
-  background-color: #070810;
+  background: var(--forest-ghost);
   position: relative;
+  border-radius: 8px;
 }
 
-/* Subtle Glass Surface Utility */
-.glass-panel {
-  background-color: rgba(14, 17, 29, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+/* ─── GLASS (for dark-on-forest overlays) ─────────────────────── */
+.glass-forest {
+  background: rgba(14, 31, 22, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.glass-panel-subtle {
-  background-color: rgba(9, 10, 20, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.glass-white {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(14, 31, 22, 0.08);
 }
 
-/* Keyframes & Motion Classes */
+/* ─── RISK BADGE UTILITIES ────────────────────────────────────── */
+.risk-critical {
+  background: var(--risk-critical-bg);
+  border: 1px solid var(--risk-critical-border);
+  color: var(--risk-critical-text);
+}
+.risk-high {
+  background: var(--risk-high-bg);
+  border: 1px solid var(--risk-high-border);
+  color: var(--risk-high-text);
+}
+.risk-medium {
+  background: var(--risk-medium-bg);
+  border: 1px solid var(--risk-medium-border);
+  color: var(--risk-medium-text);
+}
+.risk-low {
+  background: var(--risk-low-bg);
+  border: 1px solid var(--risk-low-border);
+  color: var(--risk-low-text);
+}
+
+/* ─── ANIMATIONS ──────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.85); }
 }
 
-@keyframes dash {
-  to {
-    stroke-dashoffset: 0;
-  }
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes node-appear {
+  from { opacity: 0; transform: scale(0) rotate(-10deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.55s var(--ease-smooth) forwards;
+}
 .animate-fade-in {
-  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.4s var(--ease-precise) forwards;
 }
-
-.animate-slide-up {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-slide-right {
+  animation: slideInRight 0.45s var(--ease-smooth) forwards;
 }
-
 .animate-scale-in {
-  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scaleIn 0.35s var(--ease-smooth) forwards;
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
 
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Delay utilities */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-subtle) 25%,
+    var(--surface-divider) 50%,
+    var(--surface-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
-/* Respect Reduced Motion */
+/* ─── FOCUS STATES ────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--forest-sage);
+  outline-offset: 2px;
+}
+
+/* ─── REDUCED MOTION ──────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
+
+/* ─── LANDING PAGE SPECIFIC ───────────────────────────────────── */
+.hero-gradient {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(23,61,43,0.12) 0%, transparent 70%),
+              radial-gradient(ellipse 40% 40% at 80% 50%, rgba(23,61,43,0.06) 0%, transparent 60%),
+              var(--surface-page);
+}
+
+.section-forest {
+  background: var(--forest-primary);
+  color: var(--text-inverse);
+}
+
+.network-bg {
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(23,61,43,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(61,107,80,0.06) 0%, transparent 50%);
+}
+
+/* Pill badge */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Detective line — animated SVG path underline */
+.underline-forest {
+  text-decoration: none;
+  background: linear-gradient(90deg, var(--forest-primary), var(--forest-sage));
+  background-size: 0% 2px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size 0.35s var(--ease-smooth);
+}
+.underline-forest:hover {
+  background-size: 100% 2px;
+}
+
+/* Forest CTA button */
+.btn-forest {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--forest-primary);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-precise), transform 0.15s var(--ease-precise), box-shadow 0.2s;
+}
+.btn-forest:hover {
+  background: var(--forest-mid);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(14,31,22,0.2);
+}
+.btn-forest:active {
+  transform: translateY(0);
+}
+
+.btn-outline-forest {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 23px;
+  background: transparent;
+  color: var(--forest-primary);
+  border: 1px solid var(--forest-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.btn-outline-forest:hover {
+  background: var(--forest-ghost);
+  transform: translateY(-1px);
+}
+
+/* ─── SHELL SIDEBAR THEME ─────────────────────────────────────── */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+  transition: color 0.15s, background 0.15s;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sidebar-nav-item:hover {
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.07);
+}
+.sidebar-nav-item.active {
+  color: #FFFFFF;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ─── INVESTIGATION WORKSPACE ─────────────────────────────────── */
+.evidence-panel {
+  background: var(--surface-raised);
+  border-left: 1px solid var(--surface-border);
+}
+
+.causal-step {
+  position: relative;
+  padding-left: 28px;
+}
+.causal-step::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 24px;
+  bottom: -8px;
+  width: 1px;
+  background: var(--surface-border);
+}
+.causal-step:last-child::before {
+  display: none;
+}
+.causal-step-dot {
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── LIGHT-THEME OVERRIDES for dark Tailwind classes ─────────── */
+/* These override old dark-palette Tailwind classes on components   */
+/* not yet fully migrated to inline CSS variables.                  */
+
+/* Slate backgrounds → white/light */
+.bg-slate-900, .bg-slate-900\/80, .bg-slate-900\/60, .bg-slate-900\/40,
+.bg-\[#0d0f17\], .bg-\[#090a0f\], .bg-\[#0c0e1a\], .bg-\[#080a14\],
+.bg-\[#0b0d14\] {
+  background-color: var(--surface-raised) !important;
+}
+
+.bg-slate-950, .bg-slate-950\/60, .bg-slate-950\/40, .bg-slate-950\/70,
+.bg-\[#050315\], .bg-\[#060710\], .bg-\[#070810\] {
+  background-color: var(--surface-subtle) !important;
+}
+
+.bg-slate-800, .bg-slate-800\/60, .bg-slate-800\/40, .bg-slate-800\/80 {
+  background-color: var(--surface-divider) !important;
+}
+
+/* Slate text → dark */
+.text-slate-100 { color: var(--text-primary) !important; }
+.text-slate-200 { color: var(--text-primary) !important; }
+.text-slate-300 { color: var(--text-secondary) !important; }
+.text-slate-400 { color: var(--text-muted) !important; }
+.text-slate-500 { color: var(--text-muted) !important; }
+
+/* Borders → light palette */
+.border-slate-800, .border-slate-800\/80, .border-slate-800\/60,
+.border-slate-800\/40, .border-slate-700, .border-slate-900 {
+  border-color: var(--surface-border) !important;
+}
+
+/* Cyan accent → forest */
+.text-cyan-400, .text-cyan-300, .text-cyan-500 {
+  color: var(--forest-primary) !important;
+}
+.bg-cyan-500\/10, .bg-cyan-500\/20, .bg-cyan-950\/20, .bg-cyan-950\/60, .bg-cyan-950\/80 {
+  background-color: var(--forest-ghost) !important;
+}
+.border-cyan-500\/30, .border-cyan-500\/40, .border-cyan-500\/50 {
+  border-color: var(--forest-pale) !important;
+}
+.bg-cyan-600\/90 { background-color: var(--forest-primary) !important; }
+
+/* Risk colors — keep them semantic on light bg */
+.text-red-400 { color: var(--risk-critical) !important; }
+.bg-red-950\/70, .bg-red-950\/80 { background-color: var(--risk-critical-bg) !important; }
+.border-red-500\/50 { border-color: var(--risk-critical-border) !important; }
+
+.text-orange-400 { color: var(--risk-high) !important; }
+.bg-orange-950\/70, .bg-orange-950\/80, .bg-orange-950\/60 { background-color: var(--risk-high-bg) !important; }
+.border-orange-500\/50, .border-orange-500\/30 { border-color: var(--risk-high-border) !important; }
+
+.text-yellow-400, .text-amber-400 { color: var(--risk-medium) !important; }
+.bg-yellow-950\/70, .bg-amber-950\/80 { background-color: var(--risk-medium-bg) !important; }
+.border-yellow-500\/50, .border-amber-500\/50 { border-color: var(--risk-medium-border) !important; }
+
+.text-blue-400 { color: var(--risk-low) !important; }
+.bg-blue-950\/70 { background-color: var(--risk-low-bg) !important; }
+.border-blue-500\/40 { border-color: var(--risk-low-border) !important; }
+
+/* Emerald → forest low risk */
+.text-emerald-400 { color: var(--risk-low) !important; }
+.bg-emerald-500\/10 { background-color: var(--risk-low-bg) !important; }
+
+/* Backdrop and glass effects → light */
+.backdrop-blur-sm, .backdrop-blur-md {
+  backdrop-filter: blur(8px);
+}
+
+/* Modal overlays */
+.bg-black\/60, .bg-black\/70, .bg-black\/80 {
+  background-color: rgba(14, 31, 22, 0.5) !important;
+}
+
+/* Input field overrides */
+.bg-slate-950 input, input.bg-slate-950 {
+  background: var(--surface-raised) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--surface-border) !important;
+}
+
+/* Divide lines */
+.divide-slate-800\/60 > * + * {
+  border-color: var(--surface-divider) !important;
+}
+
