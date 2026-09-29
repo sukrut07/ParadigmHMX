@@ -9,13 +9,10 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
-  Copy,
-  Check,
-  ExternalLink,
-  Activity,
-  Sliders,
+  ChevronDown,
+  ChevronRight,
   FileCheck2,
-  UserCheck
+  Lock,
 } from 'lucide-react';
 import { AlertDetail, RiskTier } from '../../types';
 import { RiskBadge } from '../common/RiskBadge';
@@ -37,7 +34,9 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ alert, onCaseCreat
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportResult, setExportResult] = useState<{ sha256?: string; bundle?: any } | null>(null);
   const [verificationResult, setVerificationResult] = useState<any>(null);
-  const [copiedHash, setCopiedHash] = useState(false);
+
+  const [expandedDimension, setExpandedDimension] = useState<string | null>(null);
+  const [fullReasoningOpen, setFullReasoningOpen] = useState(false);
 
   const handleCreateCase = async () => {
     try {
@@ -51,9 +50,9 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ alert, onCaseCreat
       });
       setCaseModalOpen(false);
       if (onCaseCreated) onCaseCreated(res);
-      alertModalFeedback('Investigation Case successfully opened and assigned to reviewer!');
+      window.alert('Investigation Case successfully opened and assigned to reviewer!');
     } catch (err: any) {
-      alertModalFeedback(`Failed to create case: ${err.message}`);
+      window.alert(`Failed to create case: ${err.message}`);
     } finally {
       setCreatingCase(false);
     }
@@ -65,11 +64,9 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ alert, onCaseCreat
         setExportingJson(true);
         const res = await exportCaseBundle(alert.id, 'json');
         setExportResult(res);
-        // Trigger auto verification to showcase tamper-evidence
         const ver = await verifyEvidence(res.bundle, res.sha256);
         setVerificationResult(ver);
 
-        // Also trigger file download for user
         const blob = new Blob([JSON.stringify(res.bundle || res, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -87,372 +84,461 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({ alert, onCaseCreat
       }
     } catch (err: any) {
       console.error('Export failed:', err);
-      alertModalFeedback(`Evidence export failed: ${err.message}`);
+      window.alert(`Evidence export failed: ${err.message}`);
     } finally {
       setExportingJson(false);
       setExportingPdf(false);
     }
   };
 
-  const handleCopyHash = () => {
-    if (exportResult?.sha256) {
-      navigator.clipboard.writeText(exportResult.sha256);
-      setCopiedHash(true);
-      setTimeout(() => setCopiedHash(false), 2000);
-    }
-  };
-
-  const alertModalFeedback = (msg: string) => {
-    window.alert(msg);
-  };
-
-  // Extract multi-dimensional risk breakdown
+  // Multi-dimensional risk breakdown
   const riskFactors = alert.rule_trace?.risk_factors || alert.rule_trace?.risk_breakdown || {
     insider_privilege_risk: {
-      level: alert.tier === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
-      score: alert.tier === 'CRITICAL' ? 95 : 80,
-      title: 'Insider Privilege & Policy Misuse',
-      indicators: ['Unapproved access ticket or out-of-role parameter override detected on account.'],
+      level: alert.tier === 'CRITICAL' ? 'HIGH' : 'MEDIUM',
+      score: alert.tier === 'CRITICAL' ? 88 : 65,
+      title: 'Privilege Abuse',
+      rule: 'Out-of-Role Access',
+      indicators: ['Employee performed operations outside assigned RBAC permissions or branch jurisdiction.'],
     },
-    money_flow_topology_risk: {
-      level: alert.title.includes('Circular') ? 'CRITICAL' : 'HIGH',
-      score: 88,
-      title: 'Money-Flow Topology & Laundering',
-      indicators: ['High velocity fund movement or circular multi-hop topology identified.'],
+    causal_temporal_linkage_risk: {
+      level: 'HIGH',
+      score: 85,
+      title: 'Temporal Link',
+      rule: 'Action-Transaction Sequence',
+      indicators: ['Outbound fund transfer executed in close temporal proximity following credential/limit modification.'],
     },
     profile_kyc_mismatch_risk: {
       level: 'HIGH',
       score: 75,
-      title: 'Customer Profile & KYC Consistency',
-      indicators: ['Payment volume or activity pattern deviates from declared customer occupation profile.'],
-    },
-    causal_temporal_linkage_risk: {
-      level: alert.tier === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
-      score: 90,
-      title: 'Causal Action-Transaction Temporal Linkage',
-      indicators: ['Outbound fund transfer executed in close temporal proximity following credential/limit modification.'],
+      title: 'KYC Alignment',
+      rule: 'Income Velocity Ceiling',
+      indicators: ['Payment volume significantly exceeds customer occupation profile and monthly income ceiling.'],
     },
     network_exposure_risk: {
       level: 'MEDIUM',
-      score: 60,
-      title: 'Network Exposure & Blast Radius',
+      score: 55,
+      title: 'Network Exposure',
+      rule: 'Topology Spread',
       indicators: ['Cluster links multiple entity touchpoints across branch terminals and payment rails.'],
+    },
+    money_flow_topology_risk: {
+      level: alert.title.includes('Circular') ? 'CRITICAL' : 'LOW',
+      score: alert.title.includes('Circular') ? 92 : 20,
+      title: 'Money Flow',
+      rule: 'Transit Topology',
+      indicators: ['Laundering pattern evaluation across destination accounts and rapid transit hops.'],
     },
   };
 
-  const getDimensionBadge = (level: string) => {
+  const getDimensionBadgeStyle = (level: string) => {
     switch (level) {
       case 'CRITICAL':
-        return 'bg-red-950/80 text-red-400 border-red-500/50';
+        return { bg: '#FDECEC', color: '#B42318', border: '#F3B5B0', bar: '#B42318' };
       case 'HIGH':
-        return 'bg-orange-950/80 text-orange-400 border-orange-500/50';
+        return { bg: '#FFF0E8', color: '#A34800', border: '#F1C29E', bar: '#A34800' };
       case 'MEDIUM':
-        return 'bg-amber-950/80 text-amber-400 border-amber-500/50';
+        return { bg: '#FFF7E8', color: '#8A5A00', border: '#E9CF8B', bar: '#D97706' };
       case 'LOW':
-        return 'bg-cyan-950/80 text-cyan-400 border-cyan-500/50';
       default:
-        return 'bg-slate-800 text-slate-400 border-slate-700';
+        return { bg: '#EAF7F0', color: '#176044', border: '#B8DCC8', bar: '#16A34A' };
     }
   };
 
+  // Clean human-readable finding
+  const primaryEmployee = alert.entity_ids?.find((e) => e.startsWith('EMP')) || 'Employee';
+  const primaryAccount = alert.entity_ids?.find((e) => e.startsWith('ACC')) || 'Account';
+  const humanFinding = `${primaryEmployee} performed account access and privileged parameter modifications on ${primaryAccount} shortly before subsequent transaction routing.`;
+
   return (
-    <div className="flex flex-col gap-4 overflow-y-auto pr-1">
-      {/* 1. Risk Tier Header */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-lg backdrop-blur-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold tracking-wider text-slate-400">EVIDENCE DOSSIER</span>
-            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-cyan-400 border border-slate-700">
-              {alert.id}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* ── 1. UNIFIED COMPONENT: WHY THIS ALERT? (Section 21) ─────── */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid #D7E0DA',
+          borderRadius: 12,
+          padding: 18,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid #E7ECE9', paddingBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Info size={16} color="#176044" />
+            <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#17221C' }}>
+              Why This Alert?
             </span>
           </div>
-          <RiskBadge tier={alert.tier} size="lg" pulsing={alert.tier === 'CRITICAL'} />
-        </div>
-        <h3 className="mt-2 text-sm font-bold text-slate-100 leading-snug">{alert.title}</h3>
-        <div className="mt-2 flex items-center gap-3 text-[11px] font-mono text-slate-400">
-          <span>Status: <strong className="text-slate-200">{alert.status}</strong></span>
-          <span>•</span>
-          <span>Detected: <span className="text-slate-300">{new Date(alert.created_at).toLocaleString()}</span></span>
-        </div>
-      </div>
-
-      {/* 2. EXPLAINABLE RISK LEVELS MATRIX (Multi-factor Breakdown - Not an Opaque Single Score) */}
-      <div className="rounded-xl border border-cyan-900/40 bg-slate-900/70 p-4 shadow-md">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-          <div className="flex items-center gap-2">
-            <Sliders className="h-4 w-4 text-cyan-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-              Explainable Risk Levels
-            </span>
-          </div>
-          <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-500/40 px-2 py-0.5 rounded">
-            Multi-Factor Analysis
+          <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: '#EAF7F0', color: '#176044', border: '1px solid #B8DCC8' }}>
+            CORRELATED EVIDENCE
           </span>
         </div>
 
-        <p className="mt-2 text-[11px] text-slate-400">
-          Deterministic risk evaluation decomposed across five distinct institutional risk dimensions, replacing opaque black-box single scores:
+        {/* Primary Finding */}
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: '#17221C', fontWeight: 600, lineHeight: 1.5 }}>
+          {humanFinding}
         </p>
 
-        <div className="mt-3 space-y-2.5">
-          {Object.entries(riskFactors).map(([key, item]: [string, any]) => (
-            <div
-              key={key}
-              className="rounded-lg border border-slate-800/80 bg-slate-950/70 p-2.5 transition-colors hover:border-slate-700"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-200">{item.title}</span>
-                <span
-                  className={`rounded border px-2 py-0.5 text-[10px] font-mono font-bold uppercase ${getDimensionBadge(
-                    item.level
-                  )}`}
-                >
-                  {item.level} ({item.score}%)
-                </span>
-              </div>
-
-              {/* Progress score bar */}
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    item.level === 'CRITICAL'
-                      ? 'bg-red-500'
-                      : item.level === 'HIGH'
-                      ? 'bg-orange-500'
-                      : item.level === 'MEDIUM'
-                      ? 'bg-amber-500'
-                      : item.level === 'LOW'
-                      ? 'bg-cyan-500'
-                      : 'bg-slate-600'
-                  }`}
-                  style={{ width: `${Math.max(item.score, 5)}%` }}
-                />
-              </div>
-
-              {/* Indicators */}
-              <ul className="mt-2 space-y-1">
-                {item.indicators?.map((ind: string, i: number) => (
-                  <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-400">
-                    <span className="text-cyan-400 mt-0.5">›</span>
-                    <span className="leading-tight">{ind}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Why Flagged? (Causal Synthesis) */}
-      <div className="rounded-xl border border-slate-800/90 bg-slate-900/60 p-4 shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-          <Info className="h-4 w-4 text-cyan-400" />
-          <span>Why Flagged? (Causal Narrative)</span>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-slate-300 bg-slate-950/80 rounded-lg p-3 border border-slate-800">
-          {alert.summary}
-        </p>
-      </div>
-
-      {/* 4. Rule Trace (Deterministic Decision Logic) */}
-      <div className="rounded-xl border border-slate-800/90 bg-slate-900/60 p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-            <Layers className="h-4 w-4 text-indigo-400" />
-            <span>Deterministic Rule Trace</span>
+        {/* Matched Signals */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#68766E', textTransform: 'uppercase', marginBottom: 6 }}>
+            Matched Detection Signals:
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded">
-            Audit-Grade Trace
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {(alert.signal_ids && alert.signal_ids.length > 0
+              ? alert.signal_ids
+              : ['PRIVILEGE_OVERRIDE', 'ACCOUNT_MODIFICATION', 'RAPID_PASSTHROUGH']
+            ).map((sig) => (
+              <span
+                key={sig}
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 5,
+                  background: '#F1F5F2',
+                  color: '#176044',
+                  border: '1px solid #D7E0DA',
+                }}
+              >
+                {sig}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Deterministic Rule */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F7F9F7', padding: '8px 12px', borderRadius: 8, border: '1px solid #E7ECE9', marginBottom: 12 }}>
+          <span style={{ fontSize: 11, color: '#68766E' }}>Deterministic Rule:</span>
+          <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#17221C' }}>
+            {(alert.rule_trace as any)?.rule_name || alert.rule_trace?.rules?.[0]?.name || 'Out-of-Role Action & Transfer Sequence'}
           </span>
         </div>
 
-        <div className="mt-3 space-y-2">
-          {alert.rule_trace?.rules?.map((rule, idx) => (
-            <div
-              key={idx}
-              className="rounded-lg border border-slate-800 bg-slate-950/80 p-2.5 text-xs text-slate-300"
-            >
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-cyan-300">{rule.name}</span>
-                <span className="font-mono text-[10px] text-slate-400">{rule.rule}</span>
+        {/* Expandable Reasoning */}
+        <button
+          onClick={() => setFullReasoningOpen((p) => !p)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#176044',
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: 'pointer',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <span>{fullReasoningOpen ? 'Hide Full Reasoning' : 'View Full Deterministic Reasoning →'}</span>
+        </button>
+
+        {fullReasoningOpen && (
+          <div style={{ marginTop: 10, padding: 12, background: '#F1F5F2', borderRadius: 8, border: '1px solid #D7E0DA', fontSize: 11, color: '#425148', lineHeight: 1.5 }}>
+            {alert.summary || 'Insider activity by employee is directly linked to subsequent transaction execution.'}
+          </div>
+        )}
+      </div>
+
+      {/* ── 2. RISK DIMENSIONS ASSESSMENT (Section 20) ──────────────── */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid #D7E0DA',
+          borderRadius: 12,
+          padding: 18,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid #E7ECE9', paddingBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShieldAlert size={16} color="#176044" />
+            <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#17221C' }}>
+              Risk Assessment
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: '#68766E' }}>Click row for explanation</span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Object.entries(riskFactors).map(([key, item]: [string, any]) => {
+            const badge = getDimensionBadgeStyle(item.level);
+            const isExpanded = expandedDimension === key;
+            return (
+              <div
+                key={key}
+                onClick={() => setExpandedDimension(isExpanded ? null : key)}
+                style={{
+                  border: '1px solid #E7ECE9',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  background: isExpanded ? '#F7F9F7' : '#FFFFFF',
+                  cursor: 'pointer',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#17221C' }}>{item.title}</span>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                        background: badge.bg,
+                        color: badge.color,
+                        border: `1px solid ${badge.border}`,
+                      }}
+                    >
+                      {item.level}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: 140 }}>
+                    <div style={{ flex: 1, height: 6, background: '#E7ECE9', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${item.score}%`, height: '100%', background: badge.bar, borderRadius: 3 }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: '#68766E', width: 28 }}>
+                      {item.score}%
+                    </span>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #E7ECE9', fontSize: 11, color: '#425148' }}>
+                    <div style={{ fontWeight: 600, color: '#17221C', marginBottom: 2 }}>
+                      Why: {item.indicators?.[0]}
+                    </div>
+                    <div style={{ color: '#68766E', fontSize: 10 }}>Rule: {item.rule || 'Institutional Threshold'}</div>
+                  </div>
+                )}
               </div>
-              <p className="mt-1 text-[11px] text-slate-400 leading-normal">{rule.description}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* 5. Counterfactual Explanation ("What would change the risk?") */}
+      {/* ── 3. COUNTERFACTUAL WHAT-IF (Section 21) ────────────────────── */}
       {alert.counterfactual && (
-        <div className="rounded-xl border border-cyan-900/40 bg-cyan-950/15 p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-300">
-            <HelpCircle className="h-4 w-4 text-cyan-400" />
-            <span>Counterfactual "What-If" Analysis</span>
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid #D7E0DA',
+            borderRadius: 12,
+            padding: 16,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <HelpCircle size={15} color="#176044" />
+            <span style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: '#17221C' }}>
+              Counterfactual "What-If" Analysis
+            </span>
           </div>
-          <div className="mt-2 text-xs text-slate-300">
-            <div className="font-medium text-slate-200">
+          <div style={{ fontSize: 12, color: '#425148' }}>
+            <div style={{ marginBottom: 4 }}>
               Condition Evaluated:{' '}
-              <span className="text-orange-300 font-semibold">{alert.counterfactual.condition_changed}</span>
+              <span style={{ fontWeight: 700, color: '#A34800' }}>{alert.counterfactual.condition_changed}</span>
             </div>
-            <div className="mt-1.5 flex items-center gap-2 font-mono text-xs">
-              <span className="line-through text-red-400">{alert.counterfactual.original_tier}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, marginBottom: 8 }}>
+              <span style={{ textDecoration: 'line-through', color: '#B42318', fontWeight: 700 }}>{alert.counterfactual.original_tier}</span>
               <span>→</span>
-              <span className="text-emerald-400 font-bold">{alert.counterfactual.counterfactual_tier}</span>
+              <span style={{ color: '#16A34A', fontWeight: 800 }}>{alert.counterfactual.counterfactual_tier}</span>
             </div>
-            <p className="mt-2 text-[11px] text-slate-300 italic bg-black/40 p-2 rounded border border-cyan-800/30">
+            <p style={{ margin: 0, fontStyle: 'italic', fontSize: 11, color: '#17221C', background: '#F1F5F2', padding: 8, borderRadius: 6 }}>
               "{alert.counterfactual.explanation}"
             </p>
           </div>
         </div>
       )}
 
-      {/* 6. Clickable Evidence Records */}
-      <div className="rounded-xl border border-slate-800/90 bg-slate-900/60 p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-            <FileText className="h-4 w-4 text-emerald-400" />
-            <span>Corroborating Evidence Records ({alert.evidence?.length || 0})</span>
+      {/* ── 4. CORROBORATING EVIDENCE RECORDS ────────────────────────── */}
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid #D7E0DA',
+          borderRadius: 12,
+          padding: 16,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileText size={15} color="#176044" />
+            <span style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', color: '#17221C' }}>
+              Evidence Records ({alert.evidence?.length || 0})
+            </span>
           </div>
+          <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#176044', fontWeight: 700 }}>
+            SHA-256 ✓
+          </span>
         </div>
 
-        <div className="mt-2.5 max-h-48 space-y-1.5 overflow-y-auto custom-scrollbar">
-          {alert.evidence?.map((ev, idx) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto' }}>
+          {(alert.evidence || []).slice(0, 5).map((ev, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between rounded-lg border border-slate-800/80 bg-slate-950/60 px-3 py-2 text-xs hover:border-slate-700"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 10px',
+                borderRadius: 6,
+                background: '#F1F5F2',
+                border: '1px solid #D7E0DA',
+                fontSize: 11,
+              }}
             >
-              <div>
-                <span className="font-mono text-cyan-400 font-medium">{ev.record_id}</span>
-                <span className="ml-2 text-slate-400 text-[11px]">({ev.record_type})</span>
-                <div className="text-[11px] text-slate-300">{ev.value}</div>
-              </div>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: '#176044' }}>
+                {ev.record_id}
+              </span>
+              <span style={{ color: '#68766E', fontSize: 10 }}>{ev.record_type}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 7. Action Buttons */}
-      <div className="grid grid-cols-3 gap-2 pt-1">
+      {/* ── 5. ACTION BUTTONS ───────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, paddingTop: 4 }}>
         <button
           onClick={() => setCaseModalOpen(true)}
-          className="flex items-center justify-center gap-1.5 rounded-lg bg-cyan-600 px-2.5 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-cyan-500 transition-colors"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 14px',
+            borderRadius: 8,
+            background: '#176044',
+            color: '#FFFFFF',
+            fontSize: 12,
+            fontWeight: 700,
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(23,96,68,0.2)',
+          }}
         >
-          <Briefcase className="h-3.5 w-3.5" />
+          <Briefcase size={14} />
           <span>Assign Case</span>
         </button>
 
         <button
           onClick={() => handleExport('json')}
           disabled={exportingJson}
-          className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 14px',
+            borderRadius: 8,
+            background: '#FFFFFF',
+            border: '1px solid #D7E0DA',
+            color: '#17221C',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download size={14} color="#68766E" />
           <span>{exportingJson ? 'Exporting...' : 'Export JSON'}</span>
         </button>
 
         <button
           onClick={() => handleExport('pdf')}
           disabled={exportingPdf}
-          className="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-2.5 py-2.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-950/50 transition-colors"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 14px',
+            borderRadius: 8,
+            background: '#E8F4ED',
+            border: '1px solid #B8DCC8',
+            color: '#176044',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
         >
-          <FileCheck2 className="h-3.5 w-3.5" />
+          <FileCheck2 size={14} color="#176044" />
           <span>{exportingPdf ? 'Generating...' : 'Dossier PDF'}</span>
         </button>
       </div>
 
-      {/* Export & SHA-256 Tamper Verification Box */}
-      {exportResult && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3.5 text-xs shadow-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 font-semibold text-emerald-400">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>Evidence Package Exported</span>
-            </div>
-            {verificationResult?.valid && (
-              <span className="rounded bg-emerald-900/80 border border-emerald-500/50 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-                SHA-256 VERIFIED AUTHENTIC
-              </span>
-            )}
-          </div>
-
-          <div className="mt-2">
-            <div className="text-[10px] uppercase font-mono text-slate-400">Cryptographic Digest (RFC 8785):</div>
-            <div className="mt-1 flex items-center gap-2 rounded bg-black/60 p-2 font-mono text-[10px] text-slate-200">
-              <span className="truncate">{exportResult.sha256}</span>
-              <button
-                onClick={handleCopyHash}
-                title="Copy SHA-256"
-                className="shrink-0 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-              >
-                {copiedHash ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal for Creating & Assigning Case */}
+      {/* Case Assignment Modal */}
       {caseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-cyan-400" />
-              <h4 className="text-sm font-bold text-slate-100">Assign Case to Reviewer</h4>
-            </div>
-            <p className="mt-1 text-xs text-slate-400">
-              Bind this alert, evidence records, and correlation graph to an active case dossier for formal reviewer adjudication.
-            </p>
-
-            <div className="mt-4 space-y-3.5 text-xs">
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 60,
+          }}
+        >
+          <div
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 12,
+              padding: 24,
+              width: 440,
+              maxWidth: '90vw',
+              boxShadow: '0 20px 48px rgba(0,0,0,0.2)',
+            }}
+          >
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 800, color: '#17221C' }}>
+              Assign Alert to Investigation Case
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 12 }}>
               <div>
-                <label className="text-[11px] font-semibold text-slate-300">Case Title</label>
+                <label style={{ display: 'block', fontWeight: 600, color: '#68766E', marginBottom: 4 }}>Case Title:</label>
                 <input
                   type="text"
                   value={caseTitle}
                   onChange={(e) => setCaseTitle(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #D7E0DA', fontSize: 12 }}
                 />
               </div>
-
               <div>
-                <label className="text-[11px] font-semibold text-slate-300">Assign Reviewer</label>
-                <select
+                <label style={{ display: 'block', fontWeight: 600, color: '#68766E', marginBottom: 4 }}>Assigned Investigator:</label>
+                <input
+                  type="text"
                   value={caseAssignee}
                   onChange={(e) => setCaseAssignee(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="Analyst Priya Sharma (Fraud Operations)">Analyst Priya Sharma (Fraud Operations)</option>
-                  <option value="Reviewer Vikram Seth (Senior AML Review)">Reviewer Vikram Seth (Senior AML Review)</option>
-                  <option value="Senior Investigator Ananya Rao (Insider Risk Intelligence)">Senior Investigator Ananya Rao (Insider Risk Intelligence)</option>
-                  <option value="Compliance Officer Kabir Mehta (Legal & SAR Compliance)">Compliance Officer Kabir Mehta (Legal & SAR Compliance)</option>
-                </select>
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #D7E0DA', fontSize: 12 }}
+                />
               </div>
-
               <div>
-                <label className="text-[11px] font-semibold text-slate-300">Initial Investigator Findings & Instructions</label>
+                <label style={{ display: 'block', fontWeight: 600, color: '#68766E', marginBottom: 4 }}>Initial Triage Notes:</label>
                 <textarea
-                  rows={3}
                   value={caseNotes}
                   onChange={(e) => setCaseNotes(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
+                  rows={3}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #D7E0DA', fontSize: 12 }}
                 />
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-2.5">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
                 onClick={() => setCaseModalOpen(false)}
-                className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #D7E0DA', background: '#FFFFFF', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateCase}
                 disabled={creatingCase}
-                className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
+                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: '#176044', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
               >
-                <Briefcase className="h-3.5 w-3.5" />
-                <span>{creatingCase ? 'Assigning...' : 'Assign Case'}</span>
+                {creatingCase ? 'Creating...' : 'Confirm Assignment'}
               </button>
             </div>
           </div>

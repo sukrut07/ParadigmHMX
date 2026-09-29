@@ -52,8 +52,8 @@ export interface GraphNode {
   data: {
     id: string;
     label: string;
-    type: 'employee' | 'account' | 'customer' | 'transaction' | 'device';
-    risk?: RiskTier;
+    type: 'employee' | 'account' | 'customer' | 'transaction' | 'device' | string;
+    risk?: RiskTier | string;
     sublabel?: string;
     properties?: Record<string, any>;
   };
@@ -69,17 +69,22 @@ export interface GraphEdge {
     label?: string;
     amount?: number;
     timestamp?: string;
+    properties?: Record<string, any>;
   };
 }
 
 export interface GraphData {
-  elements: {
+  elements?: {
     nodes: GraphNode[];
     edges: GraphEdge[];
   };
+  nodes?: any[];
+  edges?: any[];
+  highlighted_path?: string[];
   focus_entities?: string[];
   total_nodes?: number;
   total_edges?: number;
+  metadata?: Record<string, any>;
 }
 
 export interface TimelineItem {

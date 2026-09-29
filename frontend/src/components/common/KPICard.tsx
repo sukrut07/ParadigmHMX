@@ -7,7 +7,7 @@ interface KPICardProps {
   icon?: LucideIcon;
   subtitle?: string;
   badge?: string;
-  badgeColor?: 'red' | 'orange' | 'yellow' | 'blue' | 'green';
+  badgeColor?: 'red' | 'orange' | 'yellow' | 'blue' | 'green' | 'emerald';
   trend?: string;
   trendUp?: boolean;
   onClick?: () => void;
@@ -32,6 +32,7 @@ export const KPICard: React.FC<KPICardProps> = ({
     yellow: { bg: 'var(--risk-medium-bg)',    color: 'var(--risk-medium)',    border: 'var(--risk-medium-border)' },
     blue:   { bg: 'var(--risk-medium-bg)',    color: 'var(--risk-medium)',    border: 'var(--risk-medium-border)' },
     green:  { bg: 'var(--risk-low-bg)',       color: 'var(--risk-low)',       border: 'var(--risk-low-border)' },
+    emerald:{ bg: 'var(--risk-low-bg)',       color: 'var(--risk-low)',       border: 'var(--risk-low-border)' },
   };
   const bs = badgeStyles[badgeColor] || badgeStyles.blue;
 

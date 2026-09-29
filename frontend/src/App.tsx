@@ -11,6 +11,7 @@ import { FraudDashboard } from './pages/FraudDashboard';
 import { AuditDashboard } from './pages/AuditDashboard';
 import { ComplianceDashboard } from './pages/ComplianceDashboard';
 import { InvestigationWorkspace } from './pages/InvestigationWorkspace';
+import { CaseGraphPage } from './pages/CaseGraphPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { EmployeeDetailPage } from './pages/EmployeeDetailPage';
@@ -61,22 +62,34 @@ export function App() {
                 {/* Investigation Workspace (Shared & Deep Links) */}
                 <Route path="investigations" element={<InvestigationWorkspace />} />
                 <Route path="investigations/:id" element={<InvestigationWorkspace />} />
+                <Route path="investigation" element={<InvestigationWorkspace />} />
+                <Route path="investigation/:id" element={<InvestigationWorkspace />} />
                 <Route path="alerts/:id" element={<InvestigationWorkspace />} />
+
+                {/* Dedicated Visual Case Graph Surface */}
+                <Route path="case-graph" element={<CaseGraphPage />} />
+                <Route path="case-graph/:id" element={<CaseGraphPage />} />
 
                 {/* Alert Queue */}
                 <Route path="alerts" element={<AlertsPage />} />
 
                 {/* Staff Surveillance & Blast Radius */}
-                <Route path="employees" element={<EmployeesPage />} />
+                <Route path="employees" element={<EmployeesPage initialTab="employees" />} />
                 <Route path="employees/:id" element={<EmployeeDetailPage />} />
                 <Route path="employees/:id/blast-radius" element={<BlastRadiusPage />} />
+                <Route path="behaviour" element={<EmployeesPage initialTab="behaviour" />} />
+                <Route path="privilege" element={<EmployeesPage initialTab="privilege" />} />
 
-                {/* Accounts & Mules Ledger */}
-                <Route path="accounts" element={<AccountsPage />} />
+                {/* Accounts, Transactions & Connected Customers */}
+                <Route path="accounts" element={<AccountsPage initialTab="accounts" />} />
+                <Route path="transactions" element={<AccountsPage initialTab="transactions" />} />
+                <Route path="customers" element={<AccountsPage initialTab="customers" />} />
 
                 {/* Case Adjudication Operations */}
                 <Route path="cases" element={<CasesPage />} />
                 <Route path="cases/:id" element={<CasesPage />} />
+                <Route path="employee-cases" element={<CasesPage />} />
+                <Route path="resolution" element={<CasesPage />} />
 
                 {/* Evidence Integrity & SHA-256 Verification */}
                 <Route path="evidence" element={<EvidencePage />} />

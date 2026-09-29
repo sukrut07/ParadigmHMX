@@ -10,16 +10,21 @@ import {
   UserCheck,
   ShieldAlert,
   ArrowRight,
+  Briefcase,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  User
 } from 'lucide-react';
 import { getCases, getCase, updateCase, addCaseNote, exportCaseBundle, getAlertDetail } from '../services/api';
 import { Case, AlertDetail } from '../types';
 import { RiskBadge } from '../components/common/RiskBadge';
 
 const AVAILABLE_REVIEWERS = [
-  'Analyst Priya Sharma (Fraud Operations)',
-  'Reviewer Vikram Seth (Senior AML Review)',
-  'Senior Investigator Ananya Rao (Insider Risk Intelligence)',
-  'Compliance Officer Kabir Mehta (Legal & SAR Compliance)',
+  'Priya Sharma (Fraud Operations)',
+  'Vikram Seth (Senior AML Review)',
+  'Ananya Rao (Insider Risk Intelligence)',
+  'Kabir Mehta (Legal & Compliance)',
 ];
 
 export const CasesPage: React.FC = () => {
@@ -116,9 +121,9 @@ export const CasesPage: React.FC = () => {
 
   const handleStatusChangeClick = (newStatus: string) => {
     if (!selectedCase) return;
-    if (newStatus === 'CLOSED_CONFIRMED' || newStatus === 'CLOSED_FALSE_POSITIVE') {
+    if (newStatus === 'CLOSED_CONFIRMED' || newStatus === 'CLOSED_FALSE_POSITIVE' || newStatus === 'CLOSED') {
       setPendingStatus(newStatus);
-      setClosureReason('');
+      setClosureReason('Investigation complete - confirmed fraud signatures matched');
       setClosureNote('');
       setClosureModalOpen(true);
     } else {
@@ -138,7 +143,7 @@ export const CasesPage: React.FC = () => {
       setCases((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       setClosureModalOpen(false);
     } catch (err: any) {
-      alert(`Status update failed: ${err.message}`);
+      alert(`Failed to transition case status: ${err.message}`);
     }
   };
 
@@ -146,8 +151,7 @@ export const CasesPage: React.FC = () => {
     if (!selectedCase || !newNote.trim()) return;
     try {
       setAddingNote(true);
-      await addCaseNote(selectedCase.id, newNote);
-      // Reload current case details
+      await addCaseNote(selectedCase.id, newNote.trim());
       const refreshed = await getCase(selectedCase.id);
       setSelectedCase(refreshed);
       setCases((prev) => prev.map((c) => (c.id === refreshed.id ? refreshed : c)));
@@ -159,26 +163,28 @@ export const CasesPage: React.FC = () => {
     }
   };
 
-  const handleExport = async (format: 'json' | 'pdf' = 'json') => {
+  const handleExport = async (format: 'json' | 'pdf') => {
     if (!selectedCase) return;
     try {
       if (format === 'json') {
         setExportingJson(true);
-        const res = await exportCaseBundle(selectedCase.id, 'json');
-        const blob = new Blob([JSON.stringify(res.bundle || res, null, 2)], { type: 'application/json' });
+        const bundle = await exportCaseBundle(selectedCase.id, 'json');
+        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Case_Evidence_${selectedCase.id}.json`;
+        a.download = `case_${selectedCase.id}_canonical_evidence.json`;
         a.click();
+        URL.revokeObjectURL(url);
       } else {
         setExportingPdf(true);
-        const res = await exportCaseBundle(selectedCase.id, 'pdf');
-        const url = URL.createObjectURL(res);
+        const blob = await exportCaseBundle(selectedCase.id, 'pdf');
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Case_Dossier_${selectedCase.id}.pdf`;
+        a.download = `case_${selectedCase.id}_forensic_dossier.pdf`;
         a.click();
+        URL.revokeObjectURL(url);
       }
     } catch (err: any) {
       alert(`Export failed: ${err.message}`);
@@ -195,59 +201,70 @@ export const CasesPage: React.FC = () => {
         c.id.toLowerCase().includes(q) ||
         (c.title && c.title.toLowerCase().includes(q)) ||
         (c.alert_id && c.alert_id.toLowerCase().includes(q)) ||
-        (c.assigned_to && c.assigned_to.toLowerCase().includes(q)) ||
-        (c.assignee_id && c.assignee_id.toLowerCase().includes(q))
+        (c.assigned_to && c.assigned_to.toLowerCase().includes(q))
       );
     }
     return true;
   });
 
+  // Lifecycle stage mapping (Section 33)
+  const getLifecycleStage = (status?: string) => {
+    const s = (status || '').toUpperCase();
+    if (s.startsWith('CLOSED')) return 4;
+    if (s === 'ESCALATED') return 3;
+    if (s === 'IN_REVIEW') return 2;
+    if (s === 'OPEN') return 1;
+    return 0; // DETECTED
+  };
+
+  const currentStage = getLifecycleStage(selectedCase?.status);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 bg-[#0d0f17] px-6 py-3 shrink-0">
+    <div className="flex flex-col h-[calc(100vh-3.75rem)] bg-[#F7F9F7] overflow-hidden">
+      {/* ── Top Header ────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between border-b border-[#D7E0DA] bg-[#FFFFFF] px-6 py-3 shrink-0 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider text-blue-400 uppercase">
-              Adjudication Pipeline
+            <span className="rounded bg-[#E8F4ED] border border-[#BBDCCA] px-2.5 py-0.5 text-[10px] font-mono font-bold tracking-wider text-[#176044] uppercase">
+              Adjudication Operations
             </span>
-            <span className="text-xs text-slate-400">Reviewer Assignment & Case Tracking</span>
+            <span className="text-xs text-[#68766E] font-mono">Case Assignment &amp; Escalation</span>
           </div>
-          <h1 className="mt-0.5 text-base font-bold text-slate-100">
-            Case Files & Evidence Export
+          <h1 className="mt-0.5 text-base font-black text-[#17221C]">
+            Case Management Center
           </h1>
         </div>
 
         <button
           onClick={loadCases}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-700 hover:text-slate-100 transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border border-[#D7E0DA] bg-[#FFFFFF] px-3 py-1.5 text-xs font-bold text-[#17221C] hover:bg-[#F1F5F2] hover:border-[#B8C6BD] transition-colors cursor-pointer shadow-xs"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className={`h-3.5 w-3.5 text-[#425148] ${loading ? 'animate-spin' : ''}`} />
           <span>Refresh</span>
         </button>
       </div>
 
       {error && (
-        <div className="bg-rose-500/10 border-b border-rose-500/30 px-6 py-2 text-xs text-rose-400 flex items-center justify-between">
+        <div className="bg-[#FDECEC] border-b border-[#F3B5B0] px-6 py-2 text-xs text-[#B42318] flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-rose-400 hover:text-rose-200">✕</button>
+          <button onClick={() => setError(null)} className="text-[#B42318] hover:underline">✕</button>
         </div>
       )}
 
-      {/* Main Split Layout: Left Queue (5 cols), Right Detail (7 cols) */}
+      {/* ── Split Layout: Left Cases Queue (5 cols), Right Workspace (7 cols) ── */}
       <div className="grid grid-cols-12 flex-1 overflow-hidden">
-        {/* Left Column: Case List */}
-        <div className="col-span-5 border-r border-slate-800 flex flex-col bg-[#0b0d14] overflow-hidden">
-          {/* Status Tabs & Search */}
-          <div className="p-3 border-b border-slate-800 space-y-2 bg-slate-900/40">
+        {/* Left Column: Case Queue */}
+        <div className="col-span-12 md:col-span-5 border-r border-[#D7E0DA] flex flex-col bg-[#FFFFFF] overflow-hidden">
+          {/* Status Filter Tabs & Search */}
+          <div className="p-3 border-b border-[#D7E0DA] space-y-2.5 bg-[#F7F9F7]">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#68766E]" />
               <input
                 type="text"
                 placeholder="Search case ID, title, reviewer, alert..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-lg border border-slate-800 bg-slate-950 pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[#D7E0DA] bg-[#FFFFFF] pl-9 pr-3 py-1.5 text-xs text-[#17221C] placeholder-[#68766E] focus:border-[#176044] focus:outline-none"
               />
             </div>
 
@@ -263,10 +280,10 @@ export const CasesPage: React.FC = () => {
                 <button
                   key={pill.label}
                   onClick={() => updateStatusFilter(pill.val)}
-                  className={`rounded px-2.5 py-1 transition-colors ${
+                  className={`rounded px-2.5 py-1 transition-all cursor-pointer font-bold ${
                     statusFilter === pill.val
-                      ? 'bg-cyan-500/20 text-cyan-300 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-[#176044] text-white shadow-xs'
+                      : 'bg-[#FFFFFF] text-[#425148] border border-[#D7E0DA] hover:bg-[#F1F5F2]'
                   }`}
                 >
                   {pill.label}
@@ -276,13 +293,13 @@ export const CasesPage: React.FC = () => {
           </div>
 
           {/* Cases Scroll Area */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#D7E0DA]">
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-xs text-slate-400">
+              <div className="flex h-40 items-center justify-center text-xs text-[#68766E]">
                 Loading cases...
               </div>
             ) : filteredCases.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">
+              <div className="p-6 text-center text-xs text-[#68766E]">
                 No cases found matching filter.
               </div>
             ) : (
@@ -294,27 +311,27 @@ export const CasesPage: React.FC = () => {
                     onClick={() => handleSelectCase(c)}
                     className={`cursor-pointer p-4 transition-all ${
                       isSelected
-                        ? 'border-l-4 border-cyan-500 bg-cyan-950/20'
-                        : 'hover:bg-slate-900/50'
+                        ? 'border-l-4 border-[#176044] bg-[#E8F4ED]/50'
+                        : 'hover:bg-[#F7F9F7]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <RiskBadge tier={c.priority} size="sm" />
-                        <span className="font-mono text-xs font-bold text-cyan-400">{c.id}</span>
+                        <span className="font-mono text-xs font-bold text-[#176044]">{c.id}</span>
                       </div>
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono uppercase text-slate-300">
+                      <span className="rounded bg-[#F1F5F2] border border-[#D7E0DA] px-2 py-0.5 text-[10px] font-mono font-bold uppercase text-[#17221C]">
                         {c.status}
                       </span>
                     </div>
 
-                    <h3 className="mt-1.5 text-xs font-semibold text-slate-200 line-clamp-1">
+                    <h3 className="mt-1.5 text-xs font-semibold text-[#17221C] line-clamp-1">
                       {c.title || `Case ${c.id}`}
                     </h3>
 
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-[#68766E] font-mono">
                       <span>Alert: {c.alert_id}</span>
-                      <span className="text-slate-300 truncate max-w-[150px]">
+                      <span className="text-[#17221C] font-semibold truncate max-w-[150px]">
                         👤 {c.assigned_to || c.assignee_id || 'Unassigned'}
                       </span>
                     </div>
@@ -325,279 +342,218 @@ export const CasesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Case Detail, Reviewer Assignment & Adjudication */}
-        <div className="col-span-7 flex flex-col bg-[#090a0f] overflow-hidden">
+        {/* Right Column: Case Detail, Lifecycle & Adjudication */}
+        <div className="col-span-12 md:col-span-7 flex flex-col bg-[#F7F9F7] overflow-hidden">
           {selectedCase ? (
-            <div className="flex flex-col h-full overflow-y-auto p-6 space-y-5 custom-scrollbar">
-              {/* Case Header */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-cyan-400">{selectedCase.id}</span>
-                    <RiskBadge tier={selectedCase.priority} size="md" />
-                    <span className="rounded bg-slate-800 px-2 py-0.5 text-xs font-mono uppercase text-slate-300">
-                      {selectedCase.status}
-                    </span>
+            <div className="flex flex-col h-full overflow-y-auto p-6 space-y-5">
+              {/* 1. Case Header & Export Buttons */}
+              <div className="rounded-xl border border-[#D7E0DA] bg-[#FFFFFF] p-5 shadow-xs">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-[#176044]">{selectedCase.id}</span>
+                      <RiskBadge tier={selectedCase.priority} size="md" />
+                      <span className="rounded bg-[#F1F5F2] border border-[#D7E0DA] px-2 py-0.5 text-[10px] font-mono font-bold uppercase text-[#17221C]">
+                        {selectedCase.status}
+                      </span>
+                    </div>
+                    <h2 className="mt-2 text-base font-black text-[#17221C]">
+                      {selectedCase.title || `Investigation Case ${selectedCase.id}`}
+                    </h2>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-[#68766E]">
+                      <span>Opened: {new Date(selectedCase.created_at).toLocaleDateString()}</span>
+                      {selectedCase.closed_at && (
+                        <span>· Closed: {new Date(selectedCase.closed_at).toLocaleDateString()}</span>
+                      )}
+                    </div>
                   </div>
-                  <h2 className="mt-1.5 text-base font-bold text-slate-100">
-                    {selectedCase.title || `Investigation Case ${selectedCase.id}`}
-                  </h2>
-                  <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
-                    <span>Created: {new Date(selectedCase.created_at).toLocaleDateString()}</span>
-                    {selectedCase.closed_at && (
-                      <>
-                        <span>·</span>
-                        <span className="text-emerald-400">Closed: {new Date(selectedCase.closed_at).toLocaleDateString()}</span>
-                      </>
-                    )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleExport('json')}
+                      disabled={exportingJson}
+                      className="flex items-center gap-1.5 rounded-lg border border-[#D7E0DA] bg-[#FFFFFF] px-3 py-1.5 text-xs font-bold text-[#17221C] hover:bg-[#F1F5F2] transition-colors cursor-pointer"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>{exportingJson ? 'Exporting...' : 'Export JSON'}</span>
+                    </button>
+                    <button
+                      onClick={() => handleExport('pdf')}
+                      disabled={exportingPdf}
+                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-all shadow-xs cursor-pointer"
+                      style={{ background: '#176044' }}
+                    >
+                      <FileCheck2 className="h-3.5 w-3.5" />
+                      <span>{exportingPdf ? 'Generating...' : 'Dossier PDF'}</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Actions: Export Bundle */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleExport('json')}
-                    disabled={exportingJson}
-                    className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700 transition-colors"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>{exportingJson ? 'Exporting...' : 'Export JSON'}</span>
-                  </button>
-                  <button
-                    onClick={() => handleExport('pdf')}
-                    disabled={exportingPdf}
-                    className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/30 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-950/50 transition-colors"
-                  >
-                    <FileCheck2 className="h-3.5 w-3.5" />
-                    <span>{exportingPdf ? 'Generating...' : 'Dossier PDF'}</span>
-                  </button>
+                {/* 2. Visual Case Lifecycle Progress Bar (Section 33) */}
+                <div className="mt-5 pt-4 border-t border-[#D7E0DA]">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#68766E] mb-2.5">
+                    Case Lifecycle Progression
+                  </div>
+                  <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                    {[
+                      { idx: 0, label: 'DETECTED' },
+                      { idx: 1, label: 'OPEN' },
+                      { idx: 2, label: 'IN REVIEW' },
+                      { idx: 3, label: 'ESCALATED' },
+                      { idx: 4, label: 'RESOLVED' },
+                    ].map((step) => {
+                      const isActive = currentStage >= step.idx;
+                      const isCurrent = currentStage === step.idx;
+                      return (
+                        <div
+                          key={step.idx}
+                          className={`p-2 rounded-lg border text-[11px] font-mono font-bold transition-all ${
+                            isCurrent
+                              ? 'bg-[#176044] text-white border-[#176044] shadow-xs'
+                              : isActive
+                              ? 'bg-[#E8F4ED] text-[#176044] border-[#BBDCCA]'
+                              : 'bg-[#F7F9F7] text-[#68766E] border-[#D7E0DA]'
+                          }`}
+                        >
+                          {step.label}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* REVIEWER ASSIGNMENT CARD */}
-              <div className="rounded-xl border border-cyan-900/40 bg-slate-900/70 p-4 shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+              {/* 3. Reviewer Assignment & Status Actions */}
+              <div className="rounded-xl border border-[#D7E0DA] bg-[#FFFFFF] p-4 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D7E0DA] pb-3">
                   <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-cyan-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Case Assignment & Reviewer
+                    <UserCheck className="h-4 w-4 text-[#176044]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#17221C]">
+                      Case Assignment &amp; Adjudication Actions
                     </span>
                   </div>
-                  <span className="rounded bg-cyan-950/80 border border-cyan-500/40 px-2 py-0.5 text-[10px] font-mono text-cyan-300">
-                    Active Adjudication
-                  </span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex-1 min-w-[240px]">
-                    <label className="text-[11px] font-semibold text-slate-400">Assigned Reviewer / Investigator:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#68766E] block mb-1.5">Assigned Investigator:</label>
                     <select
                       value={selectedCase.assigned_to || selectedCase.assignee_id || AVAILABLE_REVIEWERS[0]}
                       onChange={(e) => handleAssignReviewer(e.target.value)}
                       disabled={assigningReviewer}
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
+                      className="w-full rounded-lg border border-[#D7E0DA] bg-[#FFFFFF] px-3 py-2 text-xs font-semibold text-[#17221C] focus:border-[#176044] focus:outline-none cursor-pointer"
                     >
                       {AVAILABLE_REVIEWERS.map((rev) => (
-                        <option key={rev} value={rev}>
-                          {rev}
-                        </option>
+                        <option key={rev} value={rev}>{rev}</option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="text-[11px] text-slate-400">
-                    <div>Adjudication Priority: <strong className="text-slate-200">{selectedCase.priority}</strong></div>
-                    <div>Lifecycle Status: <strong className="text-cyan-400">{selectedCase.status}</strong></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* LINKED ALERT & EVIDENCE SUMMARY */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="h-4 w-4 text-orange-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Linked Alert Dossier
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/investigations/${selectedCase.alert_id}`)}
-                    className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500 shadow-md transition-colors"
-                  >
-                    <span>Full Forensic Workspace (Graph & Timeline)</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {loadingAlert ? (
-                  <div className="text-xs text-slate-500 py-2">Loading originating alert details...</div>
-                ) : linkedAlert ? (
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-cyan-400">{linkedAlert.id}</span>
-                      <RiskBadge tier={linkedAlert.tier} size="sm" />
-                      <span className="font-semibold text-slate-200">{linkedAlert.title}</span>
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#68766E] block mb-1.5">Change Case Status:</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        onClick={() => handleStatusChangeClick('IN_REVIEW')}
+                        className="rounded px-2.5 py-1.5 text-[11px] font-bold border border-[#D7E0DA] bg-[#FFFFFF] text-[#17221C] hover:bg-[#F1F5F2] cursor-pointer"
+                      >
+                        In Review
+                      </button>
+                      <button
+                        onClick={() => handleStatusChangeClick('ESCALATED')}
+                        className="rounded px-2.5 py-1.5 text-[11px] font-bold border border-[#F3B5B0] bg-[#FDECEC] text-[#B42318] hover:bg-[#FCD8D8] cursor-pointer"
+                      >
+                        Escalate
+                      </button>
+                      <button
+                        onClick={() => handleStatusChangeClick('CLOSED_CONFIRMED')}
+                        className="rounded px-2.5 py-1.5 text-[11px] font-bold border border-[#BBDCCA] bg-[#E8F4ED] text-[#176044] hover:bg-[#D5EFE0] cursor-pointer"
+                      >
+                        Close (Confirmed)
+                      </button>
                     </div>
-
-                    <p className="text-[11px] leading-relaxed text-slate-300 bg-slate-950/70 p-2.5 rounded-lg border border-slate-800">
-                      {linkedAlert.summary}
-                    </p>
-
-                    {/* Multi-factor badges */}
-                    {linkedAlert.rule_trace?.risk_factors && (
-                      <div className="pt-1 flex flex-wrap gap-2 text-[10px] font-mono">
-                        {Object.entries(linkedAlert.rule_trace.risk_factors).map(([k, item]: [string, any]) => (
-                          <span
-                            key={k}
-                            className="rounded bg-slate-950 border border-slate-800 px-2 py-1 text-slate-300"
-                          >
-                            <span className="text-slate-500">{item.title}:</span>{' '}
-                            <strong className="text-cyan-400">{item.level} ({item.score}%)</strong>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                ) : (
-                  <div className="text-xs text-slate-400">
-                    Originating Alert: <span className="font-mono text-cyan-400">{selectedCase.alert_id}</span>
-                  </div>
-                )}
+                </div>
               </div>
 
-              {/* Status Transition Selector */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-                <span className="text-xs font-bold text-slate-200">Adjudication Lifecycle Transitions</span>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {[
-                    { st: 'OPEN', label: 'Open' },
-                    { st: 'IN_REVIEW', label: 'Move to In-Review' },
-                    { st: 'ESCALATED', label: 'Escalate to Compliance' },
-                    { st: 'CLOSED_CONFIRMED', label: 'Close (Confirmed Fraud)' },
-                    { st: 'CLOSED_FALSE_POSITIVE', label: 'Close (False Positive)' },
-                  ].map((btn) => (
+              {/* 4. Linked Alert & Full Workspace CTA */}
+              <div className="rounded-xl border border-[#D7E0DA] bg-[#FFFFFF] p-4 shadow-xs flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#68766E]">Linked Forensic Dossier</div>
+                  <div className="text-xs font-bold text-[#17221C] mt-0.5">{selectedCase.alert_id}</div>
+                </div>
+
+                <button
+                  onClick={() => navigate(`/investigations/${selectedCase.alert_id}`)}
+                  className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer"
+                  style={{ background: '#176044' }}
+                >
+                  <span>Open Investigation →</span>
+                </button>
+              </div>
+
+              {/* 5. Case Notes & Activity Stream */}
+              <div className="rounded-xl border border-[#D7E0DA] bg-[#FFFFFF] p-4 shadow-xs space-y-3">
+                <div className="flex items-center gap-2 border-b border-[#D7E0DA] pb-2.5">
+                  <MessageSquare className="h-4 w-4 text-[#176044]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#17221C]">
+                    Adjudication Notes &amp; Observations
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add investigation note or regulatory finding..."
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                      className="flex-1 rounded-lg border border-[#D7E0DA] bg-[#FFFFFF] px-3 py-2 text-xs text-[#17221C] placeholder-[#68766E] focus:border-[#176044] focus:outline-none"
+                    />
                     <button
-                      key={btn.st}
-                      onClick={() => handleStatusChangeClick(btn.st)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        selectedCase.status === btn.st
-                          ? 'border-cyan-500 bg-cyan-500/20 text-cyan-300 shadow-sm'
-                          : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                      }`}
+                      onClick={handleAddNote}
+                      disabled={addingNote || !newNote.trim()}
+                      className="rounded-lg bg-[#176044] px-4 py-2 text-xs font-bold text-white hover:bg-[#124532] disabled:opacity-50 cursor-pointer"
                     >
-                      {btn.label}
+                      <Send className="h-3.5 w-3.5" />
                     </button>
-                  ))}
-                </div>
-
-                {selectedCase.closure_reason && (
-                  <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs text-slate-300">
-                    <span className="text-[11px] font-mono uppercase text-slate-500">Documented Closure Reason:</span>
-                    <p className="mt-0.5 text-slate-200">{selectedCase.closure_reason}</p>
                   </div>
-                )}
-              </div>
-
-              {/* Investigation Notes Thread */}
-              <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <MessageSquare className="h-4 w-4 text-cyan-400" />
-                  <span className="text-xs font-bold text-slate-200">Investigator Notes & Audit Thread</span>
-                </div>
-
-                <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
-                  {((selectedCase.notes || selectedCase.notes_json || []).length === 0) ? (
-                    <div className="text-xs text-slate-500 py-2">No reviewer notes recorded yet.</div>
-                  ) : (
-                    (selectedCase.notes || selectedCase.notes_json || []).map((note, idx) => (
-                      <div key={idx} className="rounded-lg border border-slate-800/60 bg-slate-950/60 p-3 text-xs">
-                        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                          <span className="font-semibold text-slate-200">{note.author}</span>
-                          <span>{new Date(note.timestamp).toLocaleString()}</span>
-                        </div>
-                        <p className="mt-1 text-slate-300 leading-relaxed">{note.text}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Add Note Input */}
-                <div className="flex gap-2 pt-2">
-                  <input
-                    type="text"
-                    placeholder="Add an investigation finding or compliance rationale..."
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                    className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-                  />
-                  <button
-                    onClick={handleAddNote}
-                    disabled={addingNote || !newNote.trim()}
-                    className="flex items-center gap-1 rounded-lg bg-cyan-600 px-3 py-2 text-xs font-bold text-white hover:bg-cyan-500 disabled:opacity-50 transition-colors"
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                    <span>Post</span>
-                  </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-xs text-slate-500">
-              Select a case from the queue to view adjudication details.
+            <div className="flex h-full items-center justify-center text-xs text-[#68766E]">
+              Select a case file from the queue to adjudicate.
             </div>
           )}
         </div>
       </div>
 
-      {/* Closure Justification Modal */}
+      {/* Closure Confirmation Modal */}
       {closureModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <h4 className="text-sm font-bold text-slate-100">
-              Document Closure Justification ({pendingStatus})
-            </h4>
-            <p className="mt-1 text-xs text-slate-400">
-              Regulatory compliance requires mandatory reviewer justification and documentation before resolving or dismissing cases.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl border border-[#D7E0DA] bg-[#FFFFFF] p-6 shadow-2xl space-y-4">
+            <h3 className="text-sm font-bold text-[#17221C]">Confirm Case Closure</h3>
+            <p className="text-xs text-[#425148]">
+              Are you sure you want to mark this case as <strong>{pendingStatus}</strong>?
             </p>
-
-            <div className="mt-4 space-y-3.5 text-xs">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300">Mandatory Closure Reason *</label>
-                <textarea
-                  rows={3}
-                  placeholder="State the conclusive determination (e.g., 'Confirmed collusion between EMP-017 and mule accounts' or 'Verified legitimate client business disbursement')..."
-                  value={closureReason}
-                  onChange={(e) => setClosureReason(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300">Reviewer Audit Note (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="Additional audit trail notes..."
-                  value={closureNote}
-                  onChange={(e) => setClosureNote(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2.5">
+            <textarea
+              placeholder="Mandatory closure reason & formal justification..."
+              value={closureReason}
+              onChange={(e) => setClosureReason(e.target.value)}
+              className="w-full rounded-lg border border-[#D7E0DA] p-3 text-xs text-[#17221C] focus:border-[#176044] focus:outline-none h-24"
+            />
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setClosureModalOpen(false)}
-                className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-[#D7E0DA] px-3.5 py-1.5 text-xs font-semibold text-[#68766E] hover:bg-[#F1F5F2]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => executeStatusTransition(pendingStatus, closureReason, closureNote)}
-                disabled={!closureReason.trim() || closureReason.trim().length < 5}
-                className="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
+                disabled={!closureReason.trim()}
+                className="rounded-lg bg-[#176044] text-white px-4 py-1.5 text-xs font-bold hover:bg-[#124532] disabled:opacity-50"
               >
                 Confirm Closure
               </button>

@@ -77,12 +77,83 @@ export async function getAlerts(params?: {
   return request<AlertListItem[]>(`/alerts${qStr}`);
 }
 
+export function normalizeGraphData(raw: any): GraphData {
+  if (!raw) return { elements: { nodes: [], edges: [] }, total_nodes: 0, total_edges: 0 };
+
+  if (raw.elements && Array.isArray(raw.elements.nodes)) {
+    return {
+      elements: raw.elements,
+      total_nodes: raw.elements.nodes.length,
+      total_edges: raw.elements.edges?.length || 0,
+      highlighted_path: raw.highlighted_path || [],
+      metadata: raw.metadata || {},
+    };
+  }
+
+  const rawNodes = Array.isArray(raw.nodes) ? raw.nodes : [];
+  const rawEdges = Array.isArray(raw.edges) ? raw.edges : [];
+
+  const nodes = rawNodes.map((n: any) => {
+    if (n.data) return n;
+    const type = (n.type || 'account').toLowerCase();
+    const props = n.properties || {};
+    let sublabel = '';
+    if (type === 'employee') sublabel = props.role_id ? `Role: ${props.role_id}` : (props.branch_id ? `Branch: ${props.branch_id}` : '');
+    else if (type === 'account') sublabel = props.status ? `Status: ${props.status}` : (props.daily_limit ? `Limit: ₹${props.daily_limit}` : '');
+    else if (type === 'transaction') sublabel = props.amount ? `₹${Number(props.amount).toLocaleString()}` : '';
+
+    return {
+      data: {
+        id: n.id,
+        label: n.label || n.id,
+        type,
+        risk: n.is_suspicious ? 'CRITICAL' : (n.risk || 'LOW'),
+        sublabel,
+        properties: props,
+      },
+    };
+  });
+
+  const edges = rawEdges.map((e: any, idx: number) => {
+    if (e.data) return e;
+    const props = e.properties || {};
+    return {
+      data: {
+        id: e.id || `${e.source}->${e.target}-${e.type || idx}`,
+        source: e.source,
+        target: e.target,
+        relationship: e.type || e.label || 'TRANSFER',
+        type: e.type || 'TRANSFER',
+        label: e.label || e.type || '',
+        amount: props.amount,
+        timestamp: props.timestamp,
+        properties: props,
+      },
+    };
+  });
+
+  return {
+    elements: { nodes, edges },
+    nodes: rawNodes,
+    edges: rawEdges,
+    total_nodes: nodes.length,
+    total_edges: edges.length,
+    highlighted_path: raw.highlighted_path || [],
+    metadata: raw.metadata || {},
+  };
+}
+
 export async function getAlertDetail(alertId: string): Promise<AlertDetail> {
-  return request<AlertDetail>(`/alerts/${alertId}`);
+  const res = await request<AlertDetail>(`/alerts/${alertId}`);
+  if (res && res.graph_snapshot) {
+    res.graph_snapshot = normalizeGraphData(res.graph_snapshot);
+  }
+  return res;
 }
 
 export async function getAlertGraph(alertId: string, depth: number = 2): Promise<GraphData> {
-  return request<GraphData>(`/alerts/${alertId}/graph?depth=${depth}`);
+  const res = await request<any>(`/alerts/${alertId}/graph?depth=${depth}`);
+  return normalizeGraphData(res);
 }
 
 export async function getAlertTimeline(alertId: string): Promise<TimelineItem[]> {
@@ -123,6 +194,21 @@ export async function getAccounts(params?: { branch_id?: string; account_type?: 
 
 export async function getAccountDetail(accountId: string): Promise<any> {
   return request<any>(`/accounts/${accountId}`);
+}
+
+export async function getTransactions(params?: {
+  account_id?: string;
+  channel?: string;
+  min_amount?: number;
+  limit?: number;
+}): Promise<any[]> {
+  const query = new URLSearchParams();
+  if (params?.account_id) query.set('account_id', params.account_id);
+  if (params?.channel) query.set('channel', params.channel);
+  if (params?.min_amount !== undefined) query.set('min_amount', String(params.min_amount));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return request<any[]>(`/transactions${qStr}`);
 }
 
 
@@ -196,13 +282,14 @@ export async function getEvaluation(): Promise<EvaluationData> {
 }
 
 export async function simulateAttack(payload: {
-  scenario_type: 'structuring' | 'circular' | 'rapid_passthrough' | 'insider_collusion';
+  scenario_type: 'circular' | 'structuring' | 'insider_collusion' | 'privilege_abuse' | 'pass_through' | 'profile_mismatch' | 'hybrid';
   intensity?: number;
+  seed?: number;
   mutate_structure?: boolean;
 }): Promise<any> {
   return request('/simulate', {
     method: 'POST',
-    headers: getHeaders(),
+    headers: getHeaders('REVIEWER'),
     body: JSON.stringify(payload),
   });
 }

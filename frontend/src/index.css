@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..700;1,300..700&family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -8,49 +8,72 @@
 ────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surface */
-  --surface-page:      #F7F8F3;
-  --surface-raised:    #FFFFFF;
-  --surface-subtle:    #EFF0EA;
-  --surface-border:    #D8DACE;
-  --surface-divider:   #E6E8DF;
+  /* ── Backgrounds & Surfaces ───────────────────────────────────── */
+  --background:        #F7F9F7;
+  --surface:           #FFFFFF;
+  --surface-secondary: #F1F5F2;
+  --surface-hover:     #EAF1EC;
+  --border:            #D7E0DA;
+  --border-strong:     #B8C6BD;
 
-  /* Forest Brand */
-  --forest-deep:       #0E1F16;
-  --forest-primary:    #173D2B;
-  --forest-mid:        #234D37;
-  --forest-sage:       #3D6B50;
-  --forest-light:      #5C8A6E;
-  --forest-pale:       #C8DDD2;
-  --forest-ghost:      #EBF3EE;
+  /* Aliases for backwards compatibility */
+  --surface-page:      var(--background);
+  --surface-raised:    var(--surface);
+  --surface-subtle:    var(--surface-secondary);
+  --surface-border:    var(--border);
+  --surface-divider:   var(--border);
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  --text-primary:      #17221C;
+  --text-secondary:    #425148;
+  --text-muted:        #68766E;
+  --text-disabled:     #8A958E;
+  --text-inverse:      #FFFFFF;
+  --text-inverse-muted:#B9C9C0;
+
+  /* ── Brand Colours ───────────────────────────────────────────── */
+  --brand-900:         #0B2E21;
+  --brand-800:         #124532;
+  --brand-700:         #176044;
+  --brand-600:         #16845B;
+  --brand-500:         #20A36A;
+  --brand-100:         #E5F4EC;
+  --brand-50:          #F2FAF5;
+
+  /* Forest Aliases for existing components */
+  --forest-deep:       var(--brand-900);
+  --forest-primary:    var(--brand-700);
+  --forest-mid:        var(--brand-800);
+  --forest-sage:       var(--brand-600);
+  --forest-light:      var(--brand-500);
+  --forest-pale:       var(--brand-100);
+  --forest-ghost:      var(--brand-50);
   
-  /* Text */
-  --text-primary:      #0E1F16;
-  --text-secondary:    #3D5040;
-  --text-muted:        #6B7E70;
-  --text-inverse:      #F7F8F3;
-  --text-inverse-muted:#B8CCC0;
+  /* ── Semantic Risk Tokens ────────────────────────────────────── */
+  --risk-critical:       #B42318;
+  --risk-critical-bg:    #FDECEC;
+  --risk-critical-border:#F3B5B0;
+  --risk-critical-text:  #B42318;
 
-  /* Semantic Risk — layered on forest context */
-  --risk-critical:       #C92C2C;
-  --risk-critical-bg:    #FEF2F2;
-  --risk-critical-border:#FECACA;
-  --risk-critical-text:  #7F1D1D;
+  --risk-high:           #A34800;
+  --risk-high-bg:        #FFF0E8;
+  --risk-high-border:    #F1C29E;
+  --risk-high-text:      #A34800;
 
-  --risk-high:           #D97706;
-  --risk-high-bg:        #FFFBEB;
-  --risk-high-border:    #FDE68A;
-  --risk-high-text:      #78350F;
+  --risk-medium:         #8A5A00;
+  --risk-medium-bg:      #FFF7E8;
+  --risk-medium-border:  #E9CF8B;
+  --risk-medium-text:    #8A5A00;
 
-  --risk-medium:         #0369A1;
-  --risk-medium-bg:      #EFF6FF;
-  --risk-medium-border:  #BAE6FD;
-  --risk-medium-text:    #0C4A6E;
+  --risk-low:            #176044;
+  --risk-low-bg:         #EAF7F0;
+  --risk-low-border:     #B8DCC8;
+  --risk-low-text:       #176044;
 
-  --risk-low:            #15803D;
-  --risk-low-bg:         #F0FDF4;
-  --risk-low-border:     #BBF7D0;
-  --risk-low-text:       #14532D;
+  --info:                #1858A8;
+  --info-bg:             #EDF5FF;
+  --info-border:         #B8D5FA;
+  --info-text:           #1858A8;
 
   /* Motion Easing */
   --ease-smooth:       cubic-bezier(0.16, 1, 0.3, 1);
@@ -72,7 +95,7 @@ body {
   padding: 0;
   background-color: var(--surface-page);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -95,6 +118,20 @@ body {
 /* ─── TYPOGRAPHY ──────────────────────────────────────────────── */
 .font-mono {
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+/* ─── HERO SCROLL INDICATOR ANIMATION ──────────────────────────── */
+@keyframes heroScrollFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+.hero-scroll-indicator-arrow {
+  animation: heroScrollFloat 2.4s ease-in-out infinite;
 }
 
 /* ─── UTILITY CLASSES ─────────────────────────────────────────── */
@@ -369,19 +406,53 @@ html:has(.landing-root) {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255,255,255,0.55);
+  color: #B9C9C0;
   transition: color 0.15s, background 0.15s;
   text-decoration: none;
   cursor: pointer;
 }
 .sidebar-nav-item:hover {
-  color: rgba(255,255,255,0.9);
-  background: rgba(255,255,255,0.07);
+  color: #FFFFFF;
+  background: #153D2E;
 }
 .sidebar-nav-item.active {
   color: #FFFFFF;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #1B4D39;
+  border: 1px solid rgba(95, 224, 162, 0.25);
+  font-weight: 600;
+}
+
+/* ─── TIMELINE CARDS ─────────────────────────────────────────── */
+.timeline-event-card {
+  background: #FFFFFF;
+  border: 1px solid #D7E0DA;
+  box-shadow: 0 2px 8px rgba(20, 40, 30, 0.05);
+  border-radius: 12px;
+  transition: all 0.15s ease-in-out;
+}
+.timeline-event-card:hover {
+  background: #F7FBF8;
+  border-color: #8CC9A9;
+}
+.timeline-event-card.selected {
+  background: #EFF9F3;
+  border: 1px solid #39A96B;
+}
+
+/* ─── RISK DIMENSION CARDS ───────────────────────────────────── */
+.risk-dimension-card {
+  background: #FFFFFF;
+  border: 1px solid #D7E0DA;
+  border-radius: 12px;
+  transition: border-color 0.15s ease-in-out;
+}
+.risk-dimension-card:hover {
+  border-color: #B8C6BD;
+}
+
+/* ─── GRAPH CANVAS ANCHOR ────────────────────────────────────── */
+.graph-canvas-dark {
+  background-color: #080D0B !important;
 }
 
 /* ─── INVESTIGATION WORKSPACE ─────────────────────────────────── */
@@ -424,13 +495,13 @@ html:has(.landing-root) {
 
 /* Slate backgrounds → white/light */
 .bg-slate-900, .bg-slate-900\/80, .bg-slate-900\/60, .bg-slate-900\/40,
-.bg-\[#0d0f17\], .bg-\[#090a0f\], .bg-\[#0c0e1a\], .bg-\[#080a14\],
-.bg-\[#0b0d14\] {
+[class*="bg-[#0d0f17]"], [class*="bg-[#090a0f]"], [class*="bg-[#0c0e1a]"], [class*="bg-[#080a14]"],
+[class*="bg-[#0b0d14]"] {
   background-color: var(--surface-raised) !important;
 }
 
 .bg-slate-950, .bg-slate-950\/60, .bg-slate-950\/40, .bg-slate-950\/70,
-.bg-\[#050315\], .bg-\[#060710\], .bg-\[#070810\] {
+[class*="bg-[#050315]"], [class*="bg-[#060710]"], [class*="bg-[#070810]"] {
   background-color: var(--surface-subtle) !important;
 }
 
@@ -505,4 +576,49 @@ html:has(.landing-root) {
 .divide-slate-800\/60 > * + * {
   border-color: var(--surface-divider) !important;
 }
+
+/* ─── TYPOGRAPHIC POLISH & SUBTLE SANS-SERIF ───────────────────── */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+.font-sans-subtle {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.015em;
+}
+
+.soothing-glass {
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.soothing-glass-card {
+  background: rgba(14, 31, 22, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@keyframes workflowStageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.workflow-stage-detail {
+  animation: workflowStageFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 
