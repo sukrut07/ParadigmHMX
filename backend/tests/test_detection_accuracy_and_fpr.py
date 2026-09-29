@@ -1,4 +1,3 @@
-import pytest
 from app.services.correlation.linker import CorrelationLinker
 from app.services.detection.engine import DetectionEngine
 from app.services.evaluation.metrics import EvaluationEngine
@@ -27,7 +26,9 @@ def test_detection_accuracy_and_false_positive_rate(seeded_db):
     confusion = metrics["confusion_matrix"]
 
     # 1. Detection Accuracy (Recall / Sensitivity) on suspicious scenarios
-    assert overall["recall"] == 1.0, f"Expected 100% recall on ground truth suspicious accounts, got {overall['recall']}"
+    assert overall["recall"] == 1.0, (
+        f"Expected 100% recall on ground truth suspicious accounts, got {overall['recall']}"
+    )
     assert overall["detection_rate"] == 1.0
     assert confusion["false_negative"] == 0, f"Expected 0 false negatives, got {confusion['false_negative']}"
 
@@ -37,12 +38,16 @@ def test_detection_accuracy_and_false_positive_rate(seeded_db):
 
     # 3. False Positive Rate on Legitimate Scenarios
     assert hard_negs["fp_rate"] <= 0.10, f"Expected FPR <= 10% on hard negatives, got {hard_negs['fp_rate']}"
-    assert hard_negs["true_negatives"] >= 25, f"Expected high true negative count on benign controls, got {hard_negs['true_negatives']}"
+    assert hard_negs["true_negatives"] >= 25, (
+        f"Expected high true negative count on benign controls, got {hard_negs['true_negatives']}"
+    )
 
     # 4. Mandatory explainable risk levels verification (not an opaque single score)
     for al in alerts:
         rule_trace = al.rule_trace or {}
-        assert "risk_factors" in rule_trace or "risk_breakdown" in rule_trace, f"Alert {al.id} missing explainable risk breakdown"
+        assert "risk_factors" in rule_trace or "risk_breakdown" in rule_trace, (
+            f"Alert {al.id} missing explainable risk breakdown"
+        )
         rf = rule_trace.get("risk_factors") or rule_trace.get("risk_breakdown")
         assert "insider_privilege_risk" in rf
         assert "money_flow_topology_risk" in rf

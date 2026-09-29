@@ -291,8 +291,34 @@ def seed_demo_and_synthetic_dataset(
         id="ACC-7703", customer_id=customers[25].id, account_type="SAVINGS", branch_id="BR-02", daily_limit=500000.0
     )
 
-    db.add_all([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3, acc_struct1, acc_struct2, acc_struct3])
-    accounts.extend([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3, acc_struct1, acc_struct2, acc_struct3])
+    db.add_all(
+        [
+            acc_demo_target,
+            acc_demo_mule1,
+            acc_demo_mule2,
+            acc_payroll,
+            acc_circ1,
+            acc_circ2,
+            acc_circ3,
+            acc_struct1,
+            acc_struct2,
+            acc_struct3,
+        ]
+    )
+    accounts.extend(
+        [
+            acc_demo_target,
+            acc_demo_mule1,
+            acc_demo_mule2,
+            acc_payroll,
+            acc_circ1,
+            acc_circ2,
+            acc_circ3,
+            acc_struct1,
+            acc_struct2,
+            acc_struct3,
+        ]
+    )
 
     reserved_acc_ids: set[str] = {a.id for a in accounts}
     counter = 1
@@ -650,9 +676,16 @@ def seed_demo_and_synthetic_dataset(
     # Generate realistic background transactions (up to num_transactions)
     # We will generate in batches for performance
     special_acc_ids = {
-        "ACC-0231", "ACC-0442", "ACC-0553", "ACC-PAYROLL-01",
-        "ACC-8801", "ACC-8802", "ACC-8803",
-        "ACC-7701", "ACC-7702", "ACC-7703",
+        "ACC-0231",
+        "ACC-0442",
+        "ACC-0553",
+        "ACC-PAYROLL-01",
+        "ACC-8801",
+        "ACC-8802",
+        "ACC-8803",
+        "ACC-7701",
+        "ACC-7702",
+        "ACC-7703",
     }
     background_acc_ids = [a.id for a in accounts if a.id not in special_acc_ids]
     if len(background_acc_ids) < 2:

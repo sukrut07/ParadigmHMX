@@ -22,16 +22,22 @@ def _compute_risk_breakdown(
     insider_indicators = []
     insider_score = 0
     if "OUT_OF_ROLE_ACCESS" in signal_types:
-        insider_indicators.append("Employee performed unauthorized operations outside assigned RBAC permissions or branch jurisdiction.")
+        insider_indicators.append(
+            "Employee performed unauthorized operations outside assigned RBAC permissions or branch jurisdiction."
+        )
         insider_score += 40
     if "PRIVILEGE_ABUSE" in signal_types:
-        insider_indicators.append("Unapproved managerial override or limit boost executed without dual-control signoff.")
+        insider_indicators.append(
+            "Unapproved managerial override or limit boost executed without dual-control signoff."
+        )
         insider_score += 45
     if "OFF_HOURS_ACCESS" in signal_types:
         insider_indicators.append("Session initiated during off-hours/weekend without emergency authorization ticket.")
         insider_score += 25
     if "BULK_LOOKUP" in signal_types:
-        insider_indicators.append("Anomalous high-velocity customer account queries (z-score > 2.5) indicating reconnaissance.")
+        insider_indicators.append(
+            "Anomalous high-velocity customer account queries (z-score > 2.5) indicating reconnaissance."
+        )
         insider_score += 30
 
     if insider_score >= 70 or ("PRIVILEGE_ABUSE" in signal_types and "CRITICAL" in severities):
@@ -48,10 +54,14 @@ def _compute_risk_breakdown(
     topology_indicators = []
     topology_score = 0
     if "CIRCULAR_TRANSFER" in signal_types:
-        topology_indicators.append("Directed multi-hop circular transfer loop detected returning funds to originator or mule ring.")
+        topology_indicators.append(
+            "Directed multi-hop circular transfer loop detected returning funds to originator or mule ring."
+        )
         topology_score += 50
     if "STRUCTURING" in signal_types:
-        topology_indicators.append("Transaction splitting detected intentionally skirting mandatory statutory reporting thresholds.")
+        topology_indicators.append(
+            "Transaction splitting detected intentionally skirting mandatory statutory reporting thresholds."
+        )
         topology_score += 45
     if "RAPID_PASSTHROUGH" in signal_types:
         topology_indicators.append("Mule account behavior: Inbound lump-sum dissipated > 85% within 4 hours.")
@@ -71,13 +81,17 @@ def _compute_risk_breakdown(
     profile_indicators = []
     profile_score = 0
     if "PROFILE_MISMATCH" in signal_types:
-        profile_indicators.append("Payment volume significantly exceeds customer occupation profile and monthly income ceiling.")
+        profile_indicators.append(
+            "Payment volume significantly exceeds customer occupation profile and monthly income ceiling."
+        )
         profile_score += 45
     # Check if account parameter changes touched KYC or contact info
     for s in signals:
         for ev in s.get("evidence", []):
             if ev.get("record_type") == "account_change" and ev.get("field") in ("phone", "email", "address", "KYC"):
-                profile_indicators.append(f"Security contact field '{ev.get('field')}' modified immediately prior to outbound transfer.")
+                profile_indicators.append(
+                    f"Security contact field '{ev.get('field')}' modified immediately prior to outbound transfer."
+                )
                 profile_score += 40
                 break
 
@@ -95,11 +109,15 @@ def _compute_risk_breakdown(
     causal_indicators = []
     causal_score = 0
     if "ACTION_TRANSACTION_LINK" in signal_types:
-        causal_indicators.append("Direct causal sequence: Internal employee parameter modification followed by rapid outbound fund dissipation.")
+        causal_indicators.append(
+            "Direct causal sequence: Internal employee parameter modification followed by rapid outbound fund dissipation."
+        )
         causal_score += 55
         if employees and accounts:
             causal_score += 35
-            causal_indicators.append(f"High temporal proximity: Transactions executed in tight temporal window following employee {employees[0]} action.")
+            causal_indicators.append(
+                f"High temporal proximity: Transactions executed in tight temporal window following employee {employees[0]} action."
+            )
 
     if causal_score >= 75:
         causal_level = "CRITICAL"
@@ -117,11 +135,15 @@ def _compute_risk_breakdown(
     if total_entities >= 4:
         network_level = "HIGH"
         network_score = 85
-        network_indicators.append(f"Broad network exposure: Alert cluster links {len(accounts)} accounts and {len(employees)} internal operators.")
+        network_indicators.append(
+            f"Broad network exposure: Alert cluster links {len(accounts)} accounts and {len(employees)} internal operators."
+        )
     elif total_entities >= 2:
         network_level = "MEDIUM"
         network_score = 60
-        network_indicators.append(f"Multi-entity cluster: Involves {len(accounts)} account(s) and {len(employees)} employee(s).")
+        network_indicators.append(
+            f"Multi-entity cluster: Involves {len(accounts)} account(s) and {len(employees)} employee(s)."
+        )
     else:
         network_level = "LOW"
         network_score = 30
@@ -220,4 +242,3 @@ def build_rule_trace(
         "risk_factors": risk_breakdown,
         "risk_breakdown": risk_breakdown,
     }
-

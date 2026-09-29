@@ -40,12 +40,25 @@ def main():
 
         # Seed initial investigation cases for top alerts to support reviewer workflow
         from app.services.cases.case_service import CaseService
+
         case_svc = CaseService()
 
         reviewers = [
-            ("Analyst Priya Sharma (Fraud Ops)", "IN_REVIEW", "Corroborated multi-hop circular flow following unauthorized override. Escalating to AML review."),
-            ("Reviewer Vikram Seth (AML Review)", "OPEN", "Action-transaction link verified on target account. Pending customer outreach."),
-            ("Senior Investigator Ananya Rao (Insider Risk)", "ESCALATED", "Bulk customer lookup pattern deviation exceeding peer group baseline (z-score > 3.0)."),
+            (
+                "Analyst Priya Sharma (Fraud Ops)",
+                "IN_REVIEW",
+                "Corroborated multi-hop circular flow following unauthorized override. Escalating to AML review.",
+            ),
+            (
+                "Reviewer Vikram Seth (AML Review)",
+                "OPEN",
+                "Action-transaction link verified on target account. Pending customer outreach.",
+            ),
+            (
+                "Senior Investigator Ananya Rao (Insider Risk)",
+                "ESCALATED",
+                "Bulk customer lookup pattern deviation exceeding peer group baseline (z-score > 3.0).",
+            ),
         ]
 
         print("\nInitializing active reviewer case files...")
