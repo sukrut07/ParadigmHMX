@@ -38,8 +38,9 @@ venv.bak/
 *.db-journal
 *.sqlite3
 
-# Pytest / coverage
+# Pytest / ruff / coverage
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 

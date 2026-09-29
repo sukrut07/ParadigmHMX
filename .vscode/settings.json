@@ -3,6 +3,10 @@
   "python.analysis.extraPaths": [
     "${workspaceFolder}/backend"
   ],
-  "python.analysis.autoSearchPaths": true
+  "python.analysis.autoSearchPaths": true,
+  "git.autoRepositoryDetection": "subFolders",
+  "git.ignoredRepositories": [
+    "/Users/sukrutdusane"
+  ]
 }
 
