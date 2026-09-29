@@ -14,7 +14,8 @@ import {
   CreditCard,
   Building,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  Clock
 } from 'lucide-react';
 import { getAlertDetail, getAlertGraph, getAlertTimeline, getAlerts } from '../services/api';
 import { AlertDetail, GraphData, TimelineItem, AlertListItem } from '../types';
@@ -101,11 +102,14 @@ export const InvestigationWorkspace: React.FC = () => {
     navigate(`/investigations/${newId}`);
   };
 
+  const linkedEmployee = alert?.entity_ids?.find((e: string) => e.startsWith('EMP-'));
+  const linkedAccount = alert?.entity_ids?.find((e: string) => e.startsWith('ACC-'));
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
       {/* Investigation Top Bar */}
-      <div className="flex items-center justify-between border-b border-slate-800 bg-[#0d0f17] px-6 py-3 shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-800 bg-[#0d0f17] px-6 py-2.5 shrink-0 gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => navigate(-1)}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/80 text-slate-400 hover:border-slate-700 hover:text-slate-200 transition-colors"
@@ -114,15 +118,52 @@ export const InvestigationWorkspace: React.FC = () => {
             <ArrowLeft className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs font-semibold text-cyan-400">
+          {/* Alert / Case ID */}
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold text-cyan-400">
               {alert?.id || alertId || 'SELECT ALERT'}
             </span>
             {alert && <RiskBadge tier={alert.tier} size="md" pulsing={alert.tier === 'CRITICAL'} />}
-            <span className="text-sm font-semibold text-slate-200 truncate max-w-md">
-              {alert?.title || 'Investigation Workspace'}
-            </span>
+            {alert?.status && (
+              <span className="rounded bg-slate-800/90 border border-slate-700/80 px-2 py-0.5 text-[10px] font-mono font-bold text-slate-300 uppercase">
+                {alert.status}
+              </span>
+            )}
           </div>
+
+          <span className="text-slate-700 hidden sm:inline">|</span>
+
+          {/* Linked Employee */}
+          {linkedEmployee && (
+            <button
+              onClick={() => navigate(`/employees/${linkedEmployee}`)}
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-950/40 px-2.5 py-1 text-xs font-mono text-indigo-300 hover:bg-indigo-900/40 transition-colors"
+              title="Inspect Employee Intelligence"
+            >
+              <User className="h-3.5 w-3.5 text-indigo-400" />
+              <span>{linkedEmployee}</span>
+            </button>
+          )}
+
+          {/* Linked Account */}
+          {linkedAccount && (
+            <button
+              onClick={() => navigate(`/accounts?search=${linkedAccount}`)}
+              className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/40 px-2.5 py-1 text-xs font-mono text-cyan-300 hover:bg-cyan-900/40 transition-colors"
+              title="Inspect Linked Account"
+            >
+              <CreditCard className="h-3.5 w-3.5 text-cyan-400" />
+              <span>{linkedAccount}</span>
+            </button>
+          )}
+
+          {/* Created Timestamp */}
+          {alert?.created_at && (
+            <div className="hidden lg:flex items-center gap-1 text-[11px] font-mono text-slate-400" title={`Detected: ${new Date(alert.created_at).toLocaleString()}`}>
+              <Clock className="h-3 w-3 text-slate-500" />
+              <span>{new Date(alert.created_at).toLocaleDateString()} {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          )}
         </div>
 
         {/* Alert Selector dropdown and Actions */}

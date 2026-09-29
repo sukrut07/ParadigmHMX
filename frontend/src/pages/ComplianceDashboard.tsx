@@ -152,9 +152,12 @@ export const ComplianceDashboard: React.FC = () => {
 
       {/* Synthetic Benchmark Disclaimer Banner */}
       <div className="flex items-center gap-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3 text-xs text-cyan-300">
+        <span className="rounded bg-cyan-900/60 border border-cyan-500/40 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-200 uppercase shrink-0">
+          Synthetic benchmark
+        </span>
         <Info className="h-4 w-4 shrink-0 text-cyan-400" />
         <span>
-          <strong>Evaluation Context:</strong> Metrics evaluated against deterministically seeded benchmark dataset containing ground-truth collusion and hard-negative controls.
+          <strong>Evaluation Context:</strong> Metrics evaluated against deterministically seeded synthetic benchmark dataset containing ground-truth collusion and hard-negative controls.
         </span>
       </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import { AnimatedNumber } from '../motion/AnimatedNumber';
 
 interface KPICardProps {
   title: string;
@@ -35,7 +36,7 @@ export const KPICard: React.FC<KPICardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-lg backdrop-blur-sm transition-all duration-200 hover:border-slate-700 hover:bg-slate-900/80 ${
+      className={`relative overflow-hidden rounded-xl border border-slate-800/80 bg-[#0c0e1a] p-4 shadow-lg backdrop-blur-sm transition-all duration-200 hover:border-slate-700 hover:bg-[#121526] ${
         onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''
       } ${className}`}
     >
@@ -49,7 +50,9 @@ export const KPICard: React.FC<KPICardProps> = ({
       </div>
 
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-2xl font-bold tracking-tight text-slate-100">{value}</span>
+        <span className="text-2xl font-bold tracking-tight text-slate-100">
+          {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+        </span>
         {badge && (
           <span className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-medium ${badgeClasses}`}>
             {badge}

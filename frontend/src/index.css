@@ -1,17 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #090a0f;
-  --bg-secondary: #0f1118;
-  --bg-card: #151822;
-  --bg-card-hover: #1c202d;
-  --bg-subtle: #12151f;
+  /* Realtime Colors Dark-First Financial Intelligence Palette */
+  --bg-primary: #050315;
+  --bg-secondary: #090a14;
+  --bg-card: #0e111d;
+  --bg-card-hover: #15192b;
+  --bg-card-active: #1c2138;
+  --bg-subtle: #0b0e18;
+  
   --border-color: #242938;
-  --border-subtle: #1a1e2b;
-  --text-main: #f1f5f9;
+  --border-subtle: #191e2e;
+  --border-focused: #3d4766;
+  
+  --text-main: #fbfbfe;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
   
+  /* Brand Accent Tokens */
+  --accent-primary: #433bff;
+  --accent-indigo: #2f27ce;
+  --accent-light: #dedcff;
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  
+  /* Semantic Risk Colors */
   --risk-critical: #ef4444;
   --risk-critical-bg: rgba(239, 68, 68, 0.12);
   --risk-critical-border: rgba(239, 68, 68, 0.35);
@@ -27,9 +40,8 @@
   --risk-low: #3b82f6;
   --risk-low-bg: rgba(59, 130, 246, 0.12);
   --risk-low-border: rgba(59, 130, 246, 0.35);
-
-  --accent-cyan: #06b6d4;
-  --accent-emerald: #10b981;
+  
+  --risk-neutral: #64748b;
 }
 
 body {
@@ -37,7 +49,7 @@ body {
   padding: 0;
   background-color: var(--bg-primary);
   color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -57,32 +69,90 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090a0f;
+  background: #050315;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #242938;
+  background: #1e2436;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b4256;
+  background: #333d59;
 }
 
 /* Cytoscape container styling */
 .cytoscape-container {
   width: 100%;
   height: 100%;
-  background-color: #0b0d14;
+  background-color: #070810;
   position: relative;
 }
 
-/* Pulsing indicators for critical alerts */
+/* Subtle Glass Surface Utility */
+.glass-panel {
+  background-color: rgba(14, 17, 29, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-subtle {
+  background-color: rgba(9, 10, 20, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Keyframes & Motion Classes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -3,7 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { UserRole } from './types';
 import { Shell } from './components/layout/Shell';
 
-// Pages
+// Public Landing Page
+import { LandingPage } from './pages/landing/LandingPage';
+
+// Operational Workspaces
 import { FraudDashboard } from './pages/FraudDashboard';
 import { AuditDashboard } from './pages/AuditDashboard';
 import { ComplianceDashboard } from './pages/ComplianceDashboard';
@@ -37,50 +40,60 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <Shell currentRole={currentRole} onRoleChange={handleRoleChange}>
-        <Routes>
-          {/* Default Landing redirect based on active persona */}
-          <Route path="/" element={<Navigate to={getDefaultRedirect()} replace />} />
-          <Route path="/dashboard" element={<Navigate to={getDefaultRedirect()} replace />} />
+      <Routes>
+        {/* Public Product Landing Page */}
+        <Route path="/" element={<LandingPage />} />
 
-          {/* 3 Major Dashboards */}
-          <Route path="/dashboard/fraud" element={<FraudDashboard />} />
-          <Route path="/dashboard/audit" element={<AuditDashboard />} />
-          <Route path="/dashboard/compliance" element={<ComplianceDashboard />} />
+        {/* Operational Platform Workspaces wrapped in Shell */}
+        <Route
+          path="/*"
+          element={
+            <Shell currentRole={currentRole} onRoleChange={handleRoleChange}>
+              <Routes>
+                {/* Dashboard redirects */}
+                <Route path="dashboard" element={<Navigate to={getDefaultRedirect()} replace />} />
 
-          {/* Investigation Workspace (Shared & Deep Links) */}
-          <Route path="/investigations" element={<InvestigationWorkspace />} />
-          <Route path="/investigations/:id" element={<InvestigationWorkspace />} />
-          <Route path="/alerts/:id" element={<InvestigationWorkspace />} />
+                {/* 3 Major Dashboards */}
+                <Route path="dashboard/fraud" element={<FraudDashboard />} />
+                <Route path="dashboard/audit" element={<AuditDashboard />} />
+                <Route path="dashboard/compliance" element={<ComplianceDashboard />} />
 
-          {/* Alert Queue */}
-          <Route path="/alerts" element={<AlertsPage />} />
+                {/* Investigation Workspace (Shared & Deep Links) */}
+                <Route path="investigations" element={<InvestigationWorkspace />} />
+                <Route path="investigations/:id" element={<InvestigationWorkspace />} />
+                <Route path="alerts/:id" element={<InvestigationWorkspace />} />
 
-          {/* Staff Surveillance & Blast Radius */}
-          <Route path="/employees" element={<EmployeesPage />} />
-          <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-          <Route path="/employees/:id/blast-radius" element={<BlastRadiusPage />} />
+                {/* Alert Queue */}
+                <Route path="alerts" element={<AlertsPage />} />
 
-          {/* Accounts & Mules Ledger */}
-          <Route path="/accounts" element={<AccountsPage />} />
+                {/* Staff Surveillance & Blast Radius */}
+                <Route path="employees" element={<EmployeesPage />} />
+                <Route path="employees/:id" element={<EmployeeDetailPage />} />
+                <Route path="employees/:id/blast-radius" element={<BlastRadiusPage />} />
 
-          {/* Case Adjudication Operations */}
-          <Route path="/cases" element={<CasesPage />} />
-          <Route path="/cases/:id" element={<CasesPage />} />
+                {/* Accounts & Mules Ledger */}
+                <Route path="accounts" element={<AccountsPage />} />
 
-          {/* Evidence Integrity & SHA-256 Verification */}
-          <Route path="/evidence" element={<EvidencePage />} />
+                {/* Case Adjudication Operations */}
+                <Route path="cases" element={<CasesPage />} />
+                <Route path="cases/:id" element={<CasesPage />} />
 
-          {/* Evaluation Benchmarks */}
-          <Route path="/evaluation" element={<EvaluationPage />} />
+                {/* Evidence Integrity & SHA-256 Verification */}
+                <Route path="evidence" element={<EvidencePage />} />
 
-          {/* Adversarial Red-Team Simulator */}
-          <Route path="/simulation" element={<SimulationPage />} />
+                {/* Evaluation Benchmarks */}
+                <Route path="evaluation" element={<EvaluationPage />} />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to={getDefaultRedirect()} replace />} />
-        </Routes>
-      </Shell>
+                {/* Adversarial Red-Team Simulator */}
+                <Route path="simulation" element={<SimulationPage />} />
+
+                {/* Fallback to default persona dashboard */}
+                <Route path="*" element={<Navigate to={getDefaultRedirect()} replace />} />
+              </Routes>
+            </Shell>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }

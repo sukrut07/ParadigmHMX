@@ -7,13 +7,10 @@ import {
   Users,
   CreditCard,
   Briefcase,
-  Clock,
   ArrowRight,
   TrendingUp,
   RefreshCw,
   Activity,
-  Filter,
-  Layers,
   ChevronRight
 } from 'lucide-react';
 import { getFraudDashboard, getAlertTrend } from '../services/api';

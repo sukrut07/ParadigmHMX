@@ -7,8 +7,6 @@ import {
   RefreshCw,
   Info,
   CheckCircle2,
-  FileCheck2,
-  Layers
 } from 'lucide-react';
 import { getEvaluation } from '../services/api';
 import { EvaluationData } from '../types';
@@ -36,12 +34,30 @@ export const EvaluationPage: React.FC = () => {
     loadMetrics();
   }, []);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
           <span className="text-xs text-slate-400">Computing benchmark evaluation metrics...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="p-8 text-center">
+        <div className="mx-auto max-w-md rounded-xl border border-red-500/30 bg-red-950/20 p-6">
+          <AlertTriangle className="mx-auto h-8 w-8 text-red-400 mb-2" />
+          <h2 className="text-sm font-bold text-red-200">Unable to load evaluation benchmarks</h2>
+          <p className="mt-1 text-xs text-red-300/80">{error}</p>
+          <button
+            onClick={loadMetrics}
+            className="mt-4 rounded-lg bg-red-500/20 border border-red-500/40 px-4 py-1.5 text-xs font-semibold text-red-200"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -109,6 +125,9 @@ export const EvaluationPage: React.FC = () => {
 
       {/* Synthetic Benchmark Disclaimer Banner */}
       <div className="flex items-center gap-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3.5 text-xs text-cyan-300">
+        <span className="rounded bg-cyan-900/60 border border-cyan-500/40 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-200 uppercase shrink-0">
+          Synthetic benchmark dataset
+        </span>
         <Info className="h-4 w-4 shrink-0 text-cyan-400" />
         <span>
           <strong>Evaluation Standard:</strong> Evaluated on synthetic benchmark dataset with deterministic ground truth labels. Real-world performance will vary based on branch density and transaction volumes.

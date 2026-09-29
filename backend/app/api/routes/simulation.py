@@ -5,12 +5,13 @@ from app.api.deps import SecurityContext, get_db, require_role
 from app.schemas.simulation import SimulationRequest, SimulationResponse
 from app.services.simulation.red_team import RedTeamSimulator
 
-router = APIRouter(prefix="/simulate", tags=["Red-Team Simulator"])
+router = APIRouter(tags=["Red-Team Simulator"])
 
 simulator = RedTeamSimulator()
 
 
-@router.post("", response_model=SimulationResponse)
+@router.post("/simulate", response_model=SimulationResponse)
+@router.post("/simulation/attack", response_model=SimulationResponse)
 def run_red_team_simulation(
     payload: SimulationRequest,
     db: Session = Depends(get_db),

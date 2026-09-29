@@ -5,10 +5,6 @@ import {
   ShieldAlert,
   Play,
   CheckCircle2,
-  AlertTriangle,
-  RotateCcw,
-  Sliders,
-  Layers,
   ArrowRight
 } from 'lucide-react';
 import { simulateAttack } from '../services/api';
