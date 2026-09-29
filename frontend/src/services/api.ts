@@ -15,7 +15,7 @@ import {
 
 const API_BASE = '';
 
-function getHeaders(role?: UserRole): HeadersInit {
+function getHeaders(role?: UserRole): Record<string, string> {
   let backendRole = 'ANALYST';
   if (role === 'INTERNAL_AUDITOR' || role === 'AUDITOR') backendRole = 'AUDITOR';
   else if (role === 'COMPLIANCE_HEAD' || role === 'REVIEWER') backendRole = 'REVIEWER';
@@ -23,7 +23,10 @@ function getHeaders(role?: UserRole): HeadersInit {
   else if (role === 'FRAUD_ANALYST' || role === 'ANALYST') backendRole = 'ANALYST';
 
   return {
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'X-InsiderTrace-API': '1',
     'X-User-Role': backendRole,
     'X-User-Id': 'ANALYST-01',
   };
@@ -32,7 +35,13 @@ function getHeaders(role?: UserRole): HeadersInit {
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   try {
-    const res = await fetch(url, options);
+    const defaultHeaders = getHeaders();
+    const mergedHeaders = {
+      ...defaultHeaders,
+      ...((options?.headers as Record<string, string>) || {}),
+    };
+
+    const res = await fetch(url, { ...options, headers: mergedHeaders });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error?.message || err.detail || `Request failed with status ${res.status}`);

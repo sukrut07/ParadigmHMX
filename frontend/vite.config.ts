@@ -7,12 +7,21 @@ const apiProxy = {
   target: 'http://localhost:8001',
   changeOrigin: true,
   bypass: (req: any) => {
+    // If request is from our API client or is an XHR/fetch explicitly accepting JSON, ALWAYS proxy to backend
+    if (
+      req.headers?.['x-insidertrace-api'] ||
+      req.headers?.['x-requested-with'] === 'XMLHttpRequest' ||
+      (req.headers?.['sec-fetch-dest'] === 'empty' && req.headers?.accept?.includes('application/json'))
+    ) {
+      return null;
+    }
+
     const accept = req.headers?.accept || '';
     const dest = req.headers?.['sec-fetch-dest'];
     const mode = req.headers?.['sec-fetch-mode'];
 
-    // If request accepts text/html, is a browser document navigation, or doesn't explicitly accept json, serve SPA index.html
-    if (accept.includes('text/html') || dest === 'document' || mode === 'navigate') {
+    // Only serve index.html for direct browser document navigations (e.g. typing URL in address bar or page reload)
+    if (dest === 'document' || mode === 'navigate' || (accept.includes('text/html') && !accept.includes('application/json'))) {
       return '/index.html';
     }
   },
