@@ -36,6 +36,8 @@ venv.bak/
 
 # SQLite databases journal
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlite3
 
 # Pytest / ruff / coverage

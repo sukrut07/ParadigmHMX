@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -15,6 +16,8 @@ from app.services.graph.builder import GraphBuilder
 from app.services.timeline.builder import TimelineBuilder
 from app.utils.ids import generate_id
 from app.utils.time import utc_now
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -93,18 +96,22 @@ def get_alert_detail(alert_id: str, db: Session = Depends(get_db), user: Securit
             detail={"error": {"code": "ALERT_NOT_FOUND", "message": f"Alert '{alert_id}' does not exist."}},
         )
 
-    # Log audit
-    audit = AuditLog(
-        id=generate_id("AUD"),
-        actor=user.user_id,
-        action="VIEW_ALERT",
-        target_type="ALERT",
-        target_id=alert.id,
-        metadata_json={"user_role": user.role},
-        timestamp=utc_now(),
-    )
-    db.add(audit)
-    db.commit()
+    # Log audit safely without failing read request if logging fails
+    try:
+        audit = AuditLog(
+            id=generate_id("AUD"),
+            actor=user.user_id,
+            action="VIEW_ALERT",
+            target_type="ALERT",
+            target_id=alert.id,
+            metadata_json={"user_role": user.role},
+            timestamp=utc_now(),
+        )
+        db.add(audit)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning("Could not persist view audit log for alert %s: %s", alert.id, e)
 
     # Load associated signals
     signals = db.query(Signal).filter(Signal.id.in_(alert.signal_ids)).all()

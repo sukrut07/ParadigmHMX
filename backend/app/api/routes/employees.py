@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,8 @@ from app.schemas.employee import BlastRadiusResponse, EmployeeBase
 from app.services.graph.blast_radius import BlastRadiusAnalyzer
 from app.utils.ids import generate_id
 from app.utils.time import utc_now
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -47,8 +51,8 @@ def get_employee_blast_radius(
     Computes blast radius of an employee: accounts touched, customers touched,
     actions performed, downstream transactions, and linked risk clusters.
     """
+    # Audit inspection of blast radius
     try:
-        # Audit inspection of blast radius
         audit = AuditLog(
             id=generate_id("AUD"),
             actor=user.user_id,
@@ -60,7 +64,11 @@ def get_employee_blast_radius(
         )
         db.add(audit)
         db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning("Could not persist blast radius audit for employee %s: %s", employee_id, e)
 
+    try:
         res = blast_analyzer.analyze_employee(db, employee_id)
         return BlastRadiusResponse(**res)
     except ValueError as e:
