@@ -280,9 +280,19 @@ def seed_demo_and_synthetic_dataset(
     acc_circ3 = Account(
         id="ACC-8803", customer_id=customers[22].id, account_type="SAVINGS", branch_id="BR-03", daily_limit=500000.0
     )
+    # Structuring / Splitting Accounts
+    acc_struct1 = Account(
+        id="ACC-7701", customer_id=customers[23].id, account_type="SAVINGS", branch_id="BR-02", daily_limit=500000.0
+    )
+    acc_struct2 = Account(
+        id="ACC-7702", customer_id=customers[24].id, account_type="SAVINGS", branch_id="BR-02", daily_limit=500000.0
+    )
+    acc_struct3 = Account(
+        id="ACC-7703", customer_id=customers[25].id, account_type="SAVINGS", branch_id="BR-02", daily_limit=500000.0
+    )
 
-    db.add_all([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
-    accounts.extend([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3])
+    db.add_all([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3, acc_struct1, acc_struct2, acc_struct3])
+    accounts.extend([acc_demo_target, acc_demo_mule1, acc_demo_mule2, acc_payroll, acc_circ1, acc_circ2, acc_circ3, acc_struct1, acc_struct2, acc_struct3])
 
     reserved_acc_ids: set[str] = {a.id for a in accounts}
     counter = 1
@@ -538,6 +548,61 @@ def seed_demo_and_synthetic_dataset(
     db.add_all([gt_c1, gt_c2, gt_c3])
 
     # -------------------------------------------------------------
+    # DEMO SCENARIO 5: Transaction Splitting / Structuring (HIGH FINANCIAL ONLY)
+    # Deliberate threshold evasion: 4 transactions just under ₹50,000 threshold within 2 hours
+    t_struct = base_date + timedelta(days=14, hours=11)
+    tx_s1 = Transaction(
+        id="TX-STRUCT-01",
+        from_account_id="ACC-7701",
+        to_account_id="ACC-7702",
+        amount=48500.0,
+        channel="UPI",
+        timestamp=t_struct,
+        status="COMPLETED",
+        reference="INVOICE_PART_A",
+    )
+    tx_s2 = Transaction(
+        id="TX-STRUCT-02",
+        from_account_id="ACC-7701",
+        to_account_id="ACC-7702",
+        amount=47800.0,
+        channel="UPI",
+        timestamp=t_struct + timedelta(minutes=25),
+        status="COMPLETED",
+        reference="INVOICE_PART_B",
+    )
+    tx_s3 = Transaction(
+        id="TX-STRUCT-03",
+        from_account_id="ACC-7701",
+        to_account_id="ACC-7703",
+        amount=49200.0,
+        channel="NEFT",
+        timestamp=t_struct + timedelta(minutes=50),
+        status="COMPLETED",
+        reference="SERVICES_A",
+    )
+    tx_s4 = Transaction(
+        id="TX-STRUCT-04",
+        from_account_id="ACC-7701",
+        to_account_id="ACC-7703",
+        amount=48900.0,
+        channel="UPI",
+        timestamp=t_struct + timedelta(minutes=80),
+        status="COMPLETED",
+        reference="SERVICES_B",
+    )
+    db.add_all([tx_s1, tx_s2, tx_s3, tx_s4])
+    gt_s1 = GroundTruth(
+        id="GT-STRUCT-01",
+        entity_type="account",
+        entity_id="ACC-7701",
+        label="suspicious",
+        scenario_type="structuring",
+        scenario_id="SCEN-05-STRUCTURING",
+    )
+    db.add(gt_s1)
+
+    # -------------------------------------------------------------
     # 7. SEED HARD NEGATIVES (Legitimate routine lookalikes)
     # Family transfers, rent, utilities, small business deposits, authorized night shift
     for hn_idx in range(10):
@@ -584,7 +649,11 @@ def seed_demo_and_synthetic_dataset(
     # 8. BULK SYNTHETIC TRANSACTIONS & ACCESS LOGS
     # Generate realistic background transactions (up to num_transactions)
     # We will generate in batches for performance
-    special_acc_ids = {"ACC-0231", "ACC-0442", "ACC-0553", "ACC-PAYROLL-01", "ACC-8801", "ACC-8802", "ACC-8803"}
+    special_acc_ids = {
+        "ACC-0231", "ACC-0442", "ACC-0553", "ACC-PAYROLL-01",
+        "ACC-8801", "ACC-8802", "ACC-8803",
+        "ACC-7701", "ACC-7702", "ACC-7703",
+    }
     background_acc_ids = [a.id for a in accounts if a.id not in special_acc_ids]
     if len(background_acc_ids) < 2:
         background_acc_ids = [a.id for a in accounts]

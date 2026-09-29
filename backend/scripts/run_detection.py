@@ -38,6 +38,31 @@ def main():
         for al in alerts:
             print(f"  [{al.tier}] {al.id} - {al.title}")
 
+        # Seed initial investigation cases for top alerts to support reviewer workflow
+        from app.services.cases.case_service import CaseService
+        case_svc = CaseService()
+
+        reviewers = [
+            ("Analyst Priya Sharma (Fraud Ops)", "IN_REVIEW", "Corroborated multi-hop circular flow following unauthorized override. Escalating to AML review."),
+            ("Reviewer Vikram Seth (AML Review)", "OPEN", "Action-transaction link verified on target account. Pending customer outreach."),
+            ("Senior Investigator Ananya Rao (Insider Risk)", "ESCALATED", "Bulk customer lookup pattern deviation exceeding peer group baseline (z-score > 3.0)."),
+        ]
+
+        print("\nInitializing active reviewer case files...")
+        for idx, al in enumerate(alerts[:3]):
+            assignee, status, note = reviewers[idx % len(reviewers)]
+            case = case_svc.create_case(
+                db=db,
+                alert_id=al.id,
+                actor="SYSTEM_INIT",
+                assignee_id=assignee,
+                priority=al.tier,
+                initial_note=note,
+            )
+            if status != "OPEN":
+                case_svc.update_case(db=db, case_id=case.id, actor="SYSTEM_INIT", status=status)
+            print(f"  Created Case {case.id} -> {assignee} [{status}] for Alert {al.id}")
+
     finally:
         db.close()
 

@@ -27,3 +27,15 @@ class Case(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     alert = relationship("Alert", back_populates="case")
+
+    @property
+    def title(self) -> str:
+        return self.alert.title if self.alert else f"Investigation Case {self.id}"
+
+    @property
+    def assigned_to(self) -> str | None:
+        return self.assignee_id
+
+    @property
+    def notes_json(self) -> list[Any]:
+        return self.notes if isinstance(self.notes, list) else []

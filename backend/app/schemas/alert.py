@@ -17,6 +17,8 @@ class RuleMatch(BaseModel):
 class RuleTrace(BaseModel):
     rules: list[RuleMatch] = []
     human_explanation: str = ""
+    risk_factors: dict[str, Any] | None = None
+    risk_breakdown: dict[str, Any] | None = None
 
 
 class CounterfactualExplanation(BaseModel):

@@ -12,11 +12,11 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4.3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00?logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-1.20+-red)](https://alembic.sqlalchemy.org/)
-[![Pytest](https://img.shields.io/badge/Tests-27%20Passed-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
+[![Pytest](https://img.shields.io/badge/Tests-30%20Passed-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
 [![Type Checker](https://img.shields.io/badge/Pyright%20%26%20Pyrefly-0%20Errors-success)](https://pyrefly.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-[Architecture](#system-architecture) • [Features](#key-capabilities) • [Detection Typologies](#detection-typologies--the-9-detectors) • [Persona Workspaces](#persona-dashboards--workspaces) • [Installation](#getting-started) • [API Contract](#api-endpoints-reference) • [Evaluation](#evaluation-methodology--benchmarks)
+[Architecture](#system-architecture) • [Expected Outcomes Pipeline](#core-expected-outcomes--pipeline-architecture) • [Features](#key-capabilities) • [Detection Typologies](#detection-typologies--the-9-detectors) • [Persona Workspaces](#persona-dashboards--workspaces) • [Installation](#getting-started) • [API Contract](#api-endpoints-reference) • [Evaluation](#evaluation-methodology--benchmarks)
 
 </div>
 
@@ -85,6 +85,57 @@ InsiderTrace is designed around a multi-stage pipeline where raw events are inge
 
 ---
 
+## Core Expected Outcomes & Pipeline Architecture
+
+InsiderTrace was engineered specifically to fulfill every dimension of the unified investigation platform mandate:
+
+### 1. Money-Flow Graph and Activity Timeline
+* **Entity-Resolved Graph Subgraphs:** Constructs high-performance NetworkX graphs and interactive Cytoscape subgraphs mapping multi-hop money trails, account relationships, and employee touchpoints.
+* **Distinct Entity & Edge Semantics:**
+  - **Nodes:** Employees (Purple/Indigo), Customer Accounts (Cyan/Blue), Customers (Emerald/Green), and Transactions (Amber/Orange).
+  - **Directed Edges:** Financial transactions annotated with currency amount (`₹`) in emerald/cyan, administrative employee edits and parameter changes in dashed orange, operational overrides, and circular laundering loops highlighted in crimson.
+* **Unified Activity Timeline:** Reconciles disparate operational silos into a single, millisecond-accurate investigative event stream:
+  - Heterogeneous streams: Core banking access logs (`VIEW`, `EDIT`, `OVERRIDE`), security parameter edits (daily limit increases, mobile/OTP changes), and financial transfers (`UPI`, `NEFT`, `RTGS`, Cash).
+  - Formatted with relative time deltas ($T+0\text{m}$, $T+14\text{m}$, etc.) to expose causal insider operational facilitation immediately preceding financial dissipation.
+
+### 2. Explainable Risk Levels for Connected Anomalies (Not an Opaque Single Score)
+Rather than condensing complex multi-domain fraud into an uninterpretable 0–100 black-box number, InsiderTrace evaluates a **5-Dimension Deterministic Risk Breakdown Matrix**:
+1. **Insider Privilege Risk:** Evaluates RBAC permissions, branch jurisdictional boundaries, off-hours access, and emergency limit overrides.
+2. **Money-Flow Topology Risk:** Detects structured laundering patterns such as circular loops ($A \rightarrow B \rightarrow C \rightarrow A$), mule splitting/smurfing, and rapid fund dissipation ($\ge 85\%$ within 4h).
+3. **Profile / KYC Mismatch Risk:** Flags transaction bursts exceeding declared customer occupation income ceilings ($> 3.0\times$).
+4. **Causal Temporal Linkage Risk:** Identifies tight temporal coupling between insider parameter modifications and outbound transactions (e.g., limit boost $\rightarrow$ transfer in $< 24$ hours).
+5. **Network Exposure / Blast Radius Risk:** Quantifies graph centrality, number of exposed customer accounts, and blast radius of the involved employee.
+* Every alert includes a transparent **Rule Trace** detailing matched conditions and automated **Counterfactual "What-If" Explanations** (e.g., *"If employee EMP-017 possessed Branch Manager authority, risk tier drops from CRITICAL to LOW"*).
+
+### 3. Case Assignment & Evidence Export for Reviewers
+* **Formal Reviewer Workflow:** Reviewers and investigators can be assigned directly to active alerts and cases (`Analyst Priya Sharma (Fraud Ops)`, `Reviewer Vikram Seth (AML Review)`, `Senior Investigator Ananya Rao (Insider Risk)`).
+* **Strict State Transition Invariants:** Finite state machine (`OPEN` $\rightarrow$ `IN_REVIEW` $\rightarrow$ `ESCALATED` $\rightarrow$ `CLOSED_CONFIRMED` / `CLOSED_FALSE_POSITIVE`). Enforces mandatory documented closure reasoning and reviewer evidence notes before case resolution.
+* **Tamper-Evident Dual Evidence Export:**
+  - **RFC 8785 Canonical JSON:** Deterministically ordered JSON payload with normalized float precision, accompanied by an immutable SHA-256 digital fingerprint.
+  - **ReportLab PDF Forensic Dossier:** Multi-page regulatory dossier including executive summary, multi-dimensional risk matrix, entity subgraph metadata, chronological event logs, and embedded SHA-256 seal.
+  - **In-App Verification Modal:** One-click cryptographic verification (`POST /api/export/verify`) proving the export has not been altered post-generation.
+
+### 4. Rigorous Testing on Suspicious & Legitimate Scenarios (Accuracy & FPR)
+* **Isolated Benchmark Harness:** Tested on both covert attack scenarios and realistic benign operational activity (routine corporate payroll runs, scheduled rental disbursements, and high-velocity batch operations).
+* **Demonstrated Empirical Performance:**
+  - **Recall:** **100.00%** on planted multi-signal financial and insider attacks (zero missed true positives).
+  - **False Positive Rate (FPR):** **9.38%** on 32 hard negatives across corporate payroll and batch payments.
+  - **Precision:** **70.00%** | **F1 Score:** **82.35%**.
+  - **Ablation Lift:** Fusing insider operational telemetry with transaction monitoring achieves a **+29.7% F1 improvement** and a **-12.5% reduction in False Positive Rate** compared to traditional transaction-only monitoring.
+
+### 5. Mandatory Evidence & Explanation Panel Alongside Every Alert
+* **Executive Split-View Workspace (`/alerts`):** Rather than presenting an opaque list of scores, the Fraud Analyst triage queue is permanently paired with a dedicated, live-updating **Mandatory Evidence & Explanation Panel** on the right side of the screen.
+* **Zero-Click Context Switching:** Selecting any alert in the queue instantly populates the panel with:
+  - 5-Dimension Risk Breakdown Matrix with visual score bars and specific risk indicators.
+  - Primary detector triggers and matched rule conditions.
+  - Relative-time causal activity timeline.
+  - Database-cited audit records (transaction IDs, access log IDs).
+  - Counterfactual explanation card.
+  - In-line case creation and reviewer assignment controls.
+* **Deep Forensic Workspace (`/investigation/:id`):** Full-screen investigative canvas with the Cytoscape graph visualizer, chronological event timeline, and complete evidence export tools.
+
+---
+
 ## Key Capabilities
 
 1. **Deterministic Multi-Signal Engine:** 9 specialized heuristic and graph detectors operating over transactions, account alterations, and operator logs.
@@ -132,23 +183,29 @@ InsiderTrace provides four tailored workspaces designed for different operationa
 ```
 
 ### 1. Fraud Analyst Workspace (`/alerts`)
-* **Priority Triage Queue:** Real-time alert feed filtered by risk tier (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), primary signal, and assignment status.
-* **Alert Dossier Drawer:** Instant access to cited records, deterministic rule traces, and automated counterfactual explanations.
-* **One-Click Case Creation:** Elevate high-confidence alerts directly into formal investigative cases.
+* **Executive Split-View Workspace:** Two-column investigation layout pairing the priority alert queue directly with a persistent **Mandatory Evidence & Explanation Panel**.
+* **Zero-Click Live Context:** Selecting any alert dynamically updates the panel with the 5-dimension risk matrix, primary detector triggers, causal timeline, and cited audit IDs.
+* **Instant Case Escalation:** Convert high-risk alerts into formal investigations with one-click case creation and reviewer assignment.
 
-### 2. Internal Audit & Employee Intelligence (`/audit`)
+### 2. Case Management & Reviewer Workspace (`/cases`)
+* **Reviewer Assignment Workflow:** Assign investigative cases to active reviewers (`Analyst Priya Sharma`, `Reviewer Vikram Seth`, `Senior Investigator Ananya Rao`).
+* **Enforced State Lifecycle:** Strict state machine transitions (`OPEN` $\rightarrow$ `IN_REVIEW` $\rightarrow$ `ESCALATED` $\rightarrow$ `CLOSED_CONFIRMED` / `CLOSED_FALSE_POSITIVE`).
+* **Documented Closure Invariants:** Requires reviewer rationale and note documentation before any case can be closed.
+* **Dual Dossier Export:** Download RFC 8785 Canonical JSON or ReportLab PDF evidence packages directly from the case table.
+
+### 3. Internal Audit & Employee Intelligence (`/audit`)
 * **Peer-Group Anomaly Scores:** Z-score ranking of staff account lookups and privilege overrides against role baselines.
 * **Blast Radius Quantification:** Computes total customer accounts, branch devices, and financial volume exposed to an individual operator.
 * **Branch Risk Heatmap:** Cross-branch operational compliance health and anomaly density metrics.
 
-### 3. Compliance Head & Executive Overview (`/compliance`)
+### 4. Compliance Head & Executive Overview (`/compliance`)
 * **Regulatory Compliance Readiness:** Tracking case resolution timelines, mandatory justification adherence, and SAR filing readiness.
 * **Ablation Performance:** Side-by-side empirical metrics proving the detection lift of combining employee context with transaction monitoring.
 * **False Positive Reduction:** Live tracking of hard negative resilience across benign payroll lookalikes and scheduled rent transfers.
 
-### 4. Forensic Investigation Workspace (`/investigation/:id`)
-* **Interactive Cytoscape Network Subgraphs:** Dynamic visual exploration of fund transfers, account links, employee touchpoints, and shared devices.
-* **Unified Chronological Timeline:** Unified, chronological event stream merging core banking access logs, account field updates, and external payment rails.
+### 5. Forensic Investigation Workspace (`/investigation/:id`)
+* **Interactive Cytoscape Network Subgraphs:** Dynamic visual exploration of fund transfers, account links, employee touchpoints, and shared devices with directional styling and visual legend.
+* **Unified Chronological Timeline:** Unified, millisecond-accurate event stream merging core banking access logs, account field updates, and external payment rails.
 * **Forensic Evidence Dossier:** Tamper-evident bundle viewer with canonical JSON and formatted ReportLab PDF download.
 * **Cryptographic Integrity Verification:** On-screen verification modal validating the SHA-256 hash against the canonical payload.
 
@@ -156,7 +213,7 @@ InsiderTrace provides four tailored workspaces designed for different operationa
 
 ## Seeded Demo Scenarios
 
-The repository includes a deterministic seeding harness (`seed=42`) pre-populating rich corporate banking baseline activity alongside four flagship demo scenarios:
+The repository includes a deterministic seeding harness (`seed=42`) pre-populating rich corporate banking baseline activity alongside five flagship demo scenarios:
 
 ### Scenario 1: Insider Collusion & Circular Laundering (CRITICAL)
 * **Entities:** Employee `EMP-017` (Teller), Customer Account `ACC-0231` (Victim/Target), Mules `ACC-0442`, `ACC-0553`, and `ACC-0231`.
@@ -181,6 +238,13 @@ The repository includes a deterministic seeding harness (`seed=42`) pre-populati
 * **Entities:** Accounts `ACC-8801`, `ACC-8802`, `ACC-8803`.
 * **Execution Sequence:** Rapid 3-hop circular transfer of ₹2,50,000 executed via automated UPI rails.
 * **Platform Outcome:** Surfaces a high-priority financial crime alert attributing zero employee involvement.
+
+### Scenario 5: Transaction Splitting / Smurfing Structuring (HIGH)
+* **Entities:** Customer Accounts `ACC-7701` (Source Account), `ACC-7702` (Mule 1), `ACC-7703` (Mule 2).
+* **Execution Sequence:**
+  1. `ACC-7701` executes four consecutive rapid transfers of ₹48,500, ₹49,200, ₹47,800, and ₹48,900 to `ACC-7702` and `ACC-7703` within 2 hours.
+  2. All transactions are calibrated just under the ₹50,000 statutory reporting threshold to evade AML monitoring.
+* **Platform Outcome:** The `STRUCTURING` detector detects sub-threshold clustering and links the multi-hop transfers into an explainable `HIGH` risk alert with full evidence attribution.
 
 ---
 
@@ -313,7 +377,7 @@ Frontend application will be live at: **`http://localhost:5173`**
 InsiderTrace maintains zero type errors and zero test failures across both backend and frontend.
 
 ```bash
-# 1. Run all 27 Backend Pytest Tests (Unit, Determinism, Isolation, Scenarios)
+# 1. Run all 30 Backend Pytest Tests (Unit, Determinism, Isolation, Scenarios, Accuracy & FPR)
 pytest backend/tests -v
 
 # 2. Run Python Type Checkers (Both Pyrefly and Pyright verify 0 errors natively)
@@ -397,20 +461,21 @@ Running `python scripts/evaluate.py` benchmarks the detection engine against pla
 
 ```text
 ================ EVALUATION METRICS ================
-True Positives (TP): 6 | False Positives (FP): 16 | True Negatives (TN): 16 | False Negatives (FN): 0
-Precision:      27.27%
+True Positives (TP): 7 | False Positives (FP): 3 | True Negatives (TN): 29 | False Negatives (FN): 0
+Precision:      70.00%
 Recall:         100.00%
-F1 Score:       42.86%
+F1 Score:       82.35%
+False Positive Rate (FPR): 9.38%
 Detection Rate: 100.00%
 
 ================ ABLATION STUDY ================
-Baseline (Financial Only)     ➔ Precision: 16.7% | Recall: 66.7%  | F1: 26.7% | FPR: 62.5%
-InsiderTrace (Fused Context)  ➔ Precision: 27.3% | Recall: 100.0% | F1: 42.9% | FPR: 50.0%
-Performance Lift              ➔ F1 Delta: +16.2% | Recall Delta: +33.3% | FPR Reduction: -12.5%
+Baseline (Financial Only)     ➔ Precision: 41.7% | Recall: 71.4%  | F1: 52.6% | FPR: 21.9%
+InsiderTrace (Fused Context)  ➔ Precision: 70.0% | Recall: 100.0% | F1: 82.3% | FPR: 9.4%
+Performance Lift              ➔ F1 Delta: +29.7% | Recall Delta: +28.6% | FPR Reduction: -12.5%
 
 ================ HARD NEGATIVES TESTING ================
 Tested 32 hard negatives across corporate payroll lookalikes and rent schedules:
-True Negatives: 16 | Benign Isolation Rate: 50.0%
+True Negatives: 29 | False Positives: 3 | Benign Isolation Rate: 90.62% | FP Rate: 9.38%
 ```
 
 ---

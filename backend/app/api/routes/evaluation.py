@@ -6,13 +6,16 @@ from app.models.alert import Alert
 from app.schemas.evaluation import EvaluationResponse
 from app.services.evaluation.metrics import EvaluationEngine
 
-router = APIRouter(prefix="/metrics", tags=["Evaluation & Benchmarks"])
+router = APIRouter(tags=["Evaluation & Benchmarks"])
 
 eval_engine = EvaluationEngine()
 
 
+@router.get("/metrics", response_model=EvaluationResponse)
+@router.get("/metrics/evaluation", response_model=EvaluationResponse)
+@router.get("/evaluation/metrics", response_model=EvaluationResponse)
+@router.get("/evaluation/benchmark", response_model=EvaluationResponse)
 @router.get("/evaluation", response_model=EvaluationResponse)
-@router.get("", response_model=EvaluationResponse)
 def get_evaluation_metrics(
     db: Session = Depends(get_db),
     user: SecurityContext = Depends(require_role(["AUDITOR", "ANALYST", "REVIEWER", "ADMIN"])),

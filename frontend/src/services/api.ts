@@ -154,11 +154,13 @@ export async function updateCase(caseId: string, payload: {
   status?: string;
   priority?: string;
   assigned_to?: string;
+  assignee_id?: string;
+  note?: string;
   closure_reason?: string;
 }): Promise<Case> {
   return request<Case>(`/cases/${caseId}`, {
     method: 'PATCH',
-    headers: getHeaders(),
+    headers: getHeaders('REVIEWER'),
     body: JSON.stringify(payload),
   });
 }

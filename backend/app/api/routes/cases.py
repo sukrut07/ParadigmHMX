@@ -77,15 +77,16 @@ def update_case(
     case_id: str,
     payload: CaseUpdate,
     db: Session = Depends(get_db),
-    user: SecurityContext = Depends(require_role(["REVIEWER", "ADMIN"])),
+    user: SecurityContext = Depends(require_role(["ANALYST", "REVIEWER", "ADMIN"])),
 ):
     try:
+        assignee = payload.assignee_id or payload.assigned_to
         updated = case_service.update_case(
             db=db,
             case_id=case_id,
             actor=user.user_id,
             status=payload.status,
-            assignee_id=payload.assignee_id,
+            assignee_id=assignee,
             priority=payload.priority,
             note=payload.note,
             closure_reason=payload.closure_reason,
@@ -117,7 +118,7 @@ def export_case_evidence(
     case_id: str,
     format: str = Query("json", description="json or pdf"),
     db: Session = Depends(get_db),
-    user: SecurityContext = Depends(require_role(["AUDITOR", "REVIEWER", "ADMIN"])),
+    user: SecurityContext = Depends(require_role(["ANALYST", "AUDITOR", "REVIEWER", "ADMIN"])),
 ):
     """
     Generates canonical tamper-evident JSON bundle with SHA-256 hash, or downloadable PDF dossier.

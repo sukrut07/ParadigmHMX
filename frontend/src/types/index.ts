@@ -19,9 +19,26 @@ export interface RuleMatch {
   description?: string;
 }
 
+export interface RiskFactorItem {
+  level: RiskTier | 'NONE';
+  score: number;
+  title: string;
+  indicators: string[];
+}
+
+export interface RiskFactorsBreakdown {
+  insider_privilege_risk?: RiskFactorItem;
+  money_flow_topology_risk?: RiskFactorItem;
+  profile_kyc_mismatch_risk?: RiskFactorItem;
+  causal_temporal_linkage_risk?: RiskFactorItem;
+  network_exposure_risk?: RiskFactorItem;
+}
+
 export interface RuleTrace {
   rules: RuleMatch[];
   human_explanation: string;
+  risk_factors?: RiskFactorsBreakdown;
+  risk_breakdown?: RiskFactorsBreakdown;
 }
 
 export interface CounterfactualExplanation {
@@ -48,6 +65,7 @@ export interface GraphEdge {
     source: string;
     target: string;
     relationship: string;
+    type?: string;
     label?: string;
     amount?: number;
     timestamp?: string;
@@ -166,9 +184,16 @@ export interface Case {
   title: string;
   status: 'OPEN' | 'IN_REVIEW' | 'ESCALATED' | 'CLOSED_CONFIRMED' | 'CLOSED_FALSE_POSITIVE';
   priority: RiskTier;
+  assignee_id?: string;
   assigned_to?: string;
+  closure_reason?: string;
+  notes?: {
+    author: string;
+    text: string;
+    timestamp: string;
+  }[];
   notes_json?: {
-    id: string;
+    id?: string;
     author: string;
     text: string;
     timestamp: string;
