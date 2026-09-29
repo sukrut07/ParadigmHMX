@@ -27,6 +27,29 @@ const apiProxy = {
   },
 };
 
+const proxyRules = {
+  '/api': {
+    target: 'http://localhost:8001',
+    changeOrigin: true,
+    rewrite: (path: string) => path.replace(/^\/api/, ''),
+  },
+  '/alerts': apiProxy,
+  '/dashboard': apiProxy,
+  '/investigations': apiProxy,
+  '/employees': apiProxy,
+  '/accounts': apiProxy,
+  '/transactions': apiProxy,
+  '/cases': apiProxy,
+  '/evidence': apiProxy,
+  '/evaluation': apiProxy,
+  '/metrics': apiProxy,
+  '/simulate': apiProxy,
+  '/simulation/attack': apiProxy,
+  '/detection': apiProxy,
+  '/health': apiProxy,
+  '/demo': apiProxy,
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -35,27 +58,10 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8001',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/alerts': apiProxy,
-      '/dashboard': apiProxy,
-      '/investigations': apiProxy,
-      '/employees': apiProxy,
-      '/accounts': apiProxy,
-      '/transactions': apiProxy,
-      '/cases': apiProxy,
-      '/evidence': apiProxy,
-      '/evaluation': apiProxy,
-      '/metrics': apiProxy,
-      '/simulate': apiProxy,
-      '/simulation/attack': apiProxy,
-      '/detection': apiProxy,
-      '/health': apiProxy,
-      '/demo': apiProxy,
-    },
+    proxy: proxyRules,
+  },
+  preview: {
+    port: 5173,
+    proxy: proxyRules,
   },
 })
